@@ -1,0 +1,24 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+tqdm = "*"
+
+[dev-packages]
+black = "*"
+coverage = "*"
+flake8 = "*"
+pipenv = "*"
+pre-commit = "*"
+pylint = "*"
+pytest = "*"
+pytest-cov = "*"
+pytest-mock = "*"
+python-dateutil = "*"
+tox = "*"
+tqdm = "*"
+
+[requires]
+python_version = ">=3.9"

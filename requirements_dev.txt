@@ -1,0 +1,12 @@
+black
+coverage
+flake8
+pipenv
+pre-commit
+pylint
+pytest
+pytest-cov
+pytest-mock
+python-dateutil
+tox
+tqdm
