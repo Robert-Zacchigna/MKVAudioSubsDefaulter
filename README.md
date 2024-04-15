@@ -133,7 +133,7 @@ By default, no logs are produced but the log level can easily be changed using t
 The next logical step for this cli once you've gotten comfortable with how it works, is to get it to automagically run
 as new media files get added to your library (so you don't have to worry about your file defaults ever again).
 
-There are TONS of different ways to do this but here are a simple few:
+There are TONS of different ways to do this, see below for some examples.
 
 ### Cron Schedule
 
