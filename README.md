@@ -24,6 +24,9 @@ _without_ having to remux the whole file (which this cli aims to make as easy as
   * [Default Method: Strict vs. Lazy](#default-method-strict-vs-lazy)
   * [Depth](#depth)
   * [Verbosity](#verbosity)
+* [Advanced Usage (Orchestration)](#advanced-usage-orchestration)
+  * [Cron Schedule](#cron-schedule)
+  * [DAG (Directed Acyclic Graph)](#dag-directed-acyclic-graph)
 * [CLI Parameters](#cli-parameters)
 * [Issues](#issues)
 * [Suggestions](#suggestions)
@@ -125,6 +128,43 @@ at a maximum, one directory deeper for media files.
 There are various logging levels implemented in this cli: `0: NONE (Default), 1: INFO, 2: DEBUG, 3: WARNING, 4: ERROR`.
 By default, no logs are produced but the log level can easily be changed using the `-v, --verbose` cli arg.
 
+## Advanced Usage (Orchestration)
+
+The next logical step for this cli once you've gotten comfortable with how it works, is to get it to automagically run
+as new media files get added to your library (so you don't have to worry about your file defaults ever again).
+
+There are TONS of different ways to do this but here are a simple few:
+
+### Cron Schedule
+
+Simple enough, just create a cron that runs the cli with your desired args on a set schedule and forget about it.
+
+Possible [FOSS](https://en.wikipedia.org/wiki/Free_and_open-source_software) web-app to manage crons: [Cronicle](https://github.com/jhuckaby/Cronicle)
+
+* The downside to the above is that as your library gets bigger, the processing time will continuously get longer
+  as your library grows because the cli is not smart enough to know what files it has already processed.
+  * A simple solution to this is creating a second script/process that loads incoming files into a
+    separate directory first (where the cli can then process the files) and then move the processed files into your
+    final storage location for your media library.
+
+### DAG (Directed Acyclic Graph)
+
+A Very popular way to conduct orchestration is through using a [DAG](https://en.wikipedia.org/wiki/Directed_acyclic_graph)
+style of running tasks. There are tons of [FOSS](https://en.wikipedia.org/wiki/Free_and_open-source_software) tools that
+facilitate this, they all have their pros and cons (I'll let you decide which is the best for you).
+
+These tools offer you greater control on how you would like to process your media files (or anything else for that matter).
+The main advantage is to great a DAG with logic to only process new media files added your library and not reprocess those
+that have already been processed.
+
+You could go even further add more logic to set different defaults depending on the specific media file. For example, if
+you like to watch certain media that you always want to consume in a specific language. There are tons of possibilities here.
+
+Here are few that I'm aware of listed in alphabetical order: [Airflow](https://github.com/apache/airflow),
+[dagster](https://github.com/dagster-io/dagster), [flyte](https://github.com/flyteorg/flyte),
+[luigi](https://github.com/spotify/luigi), [mage-ai](https://github.com/mage-ai/mage-ai),
+[Prefect](https://github.com/PrefectHQ/prefect).
+
 ## CLI Parameters
 
 ```
@@ -178,3 +218,4 @@ Future possible improvements and/or additions:
 
 * Add Unit Tests
 * Rework cli to be a bit more modernized using [rich-click](https://github.com/ewels/rich-click)
+* Output media file statuses to log files depending on their status (see top of `change_default_tracks()` for statuses)
