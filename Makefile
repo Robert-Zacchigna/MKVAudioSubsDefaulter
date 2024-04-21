@@ -1,6 +1,7 @@
 init:
 	pip install -r requirements.txt
 devel:
+	make init
 	pip install -r requirements_dev.txt
 	pre-commit install --hook-type pre-commit --hook-type pre-push
 test:
