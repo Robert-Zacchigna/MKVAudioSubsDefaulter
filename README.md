@@ -31,6 +31,7 @@ _without_ having to remux the whole file (which this cli aims to make as easy as
 * [Issues](#issues)
 * [Suggestions](#suggestions)
 * [Contributions](#contributions)
+  * [Development Setup](#development-setup)
 * [Future Improvements](#future-improvements)
 
 ## Dependencies
@@ -211,6 +212,38 @@ would like to have added.
 If you would like to make a contribution, please first open an issue or feature request detailing why these changes
 should be added to the cli and then link your PR to the issue for tracking purposes. Your PR should detail all changes
 made to the cli in a clear and concise manner.
+
+### Development Setup
+
+1. Fork **MKVAudioSubsDefaulter**
+2. Setup development environment
+
+    ```bash
+    make devel
+    ```
+    OR
+    ```bash
+    pip install -r requirements.txt
+    pip install -r requirements_dev.txt
+    pip install -e .
+    pre-commit install --hook-type pre-commit --hook-type pre-push
+    ```
+
+    * Lint (Run analysis - pre-commit-config)
+
+      ```bash
+      make analysis
+      ```
+
+3. Push Changes
+   * Push changes to a branch on your forked repo
+
+
+4. Create pull request
+   * Open a pull request on **MKVAudioSubsDefaulter** and put your fork as the source of your changes
+
+
+5. Thank you for your contribution to **MKVAudioSubsDefaulter**!
 
 ## Future Improvements
 
