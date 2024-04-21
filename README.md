@@ -219,4 +219,4 @@ Future possible improvements and/or additions:
 * Add Unit Tests
 * Rework cli to be a bit more modernized using [rich-click](https://github.com/ewels/rich-click)
 * Output media file statuses to log files depending on their status (see top of `change_default_tracks()` for statuses)
-* Add a `regex` arg to filter for specific media file based on their name using `regex`
+* Add an arg to filter for specific media files based on a `regex` query
