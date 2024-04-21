@@ -10,7 +10,7 @@ from time import perf_counter
 
 from tqdm import tqdm
 
-__version__ = "1.1.0"
+__version__ = "1.1.1"
 LOGGER = logging.getLogger(__name__)
 
 
@@ -46,23 +46,23 @@ class MKVAudioSubsDefaulter(object):
         log_level: int = 0,
         default_method: str = "strict",
         file_search_depth: int = 0,
-        file_extensions: tuple[list] = tuple([".mkv"]),
+        file_extensions: tuple[str] = tuple([".mkv"]),
         mkvpropedit_location: str = None,
         mkvmerge_location: str = None,
         dry_run: bool = False,
     ):
-        self.log_level = (log_level,)
-        self.file_or_library_path = (file_or_library_path,)
-        self.audio_lang_code = (audio_lang_code,)
-        self.subtitle_lang_code = (subtitle_lang_code,)
-        self.default_method = (default_method,)
-        self.file_search_depth = (file_search_depth,)
-        self.file_extensions = (file_extensions,)
-        self.mkvpropedit_location = (mkvpropedit_location,)
-        self.mkvmerge_location = (mkvmerge_location,)
+        self.log_level = log_level
+        self.file_or_library_path = file_or_library_path
+        self.audio_lang_code = audio_lang_code
+        self.subtitle_lang_code = subtitle_lang_code
+        self.default_method = default_method
+        self.file_search_depth = file_search_depth
+        self.file_extensions = file_extensions
+        self.mkvpropedit_location = mkvpropedit_location
+        self.mkvmerge_location = mkvmerge_location
         self.dry_run = dry_run
 
-    def set_log_level(self) -> None:
+    def set_log_level(self) -> str:
         log_levels = {
             0: (None, "DISABLED"),
             1: (logging.INFO, "INFO"),
@@ -71,16 +71,18 @@ class MKVAudioSubsDefaulter(object):
             4: (logging.ERROR, "ERROR"),
         }
 
-        if log_levels[self.log_level[0]][0] is not None:
+        if log_levels[self.log_level][0] is not None:
             logging.basicConfig(
                 format="%(asctime)s - %(levelname)s: %(message)s",
                 datefmt="%m/%d/%Y %I:%M:%S %p",
-                level=log_levels[self.log_level[0]][0],
+                level=log_levels[self.log_level][0],
             )
         else:
             LOGGER.disabled = True
 
-        LOGGER.info(f"Log Level = {log_levels[self.log_level[0]][1]}\n")
+        LOGGER.info(f"Log Level = {log_levels[self.log_level][1]}\n")
+
+        return str(log_levels[self.log_level][1])
 
     @staticmethod
     def list_directories(root_dir: str, depth: int) -> list:
@@ -102,7 +104,9 @@ class MKVAudioSubsDefaulter(object):
 
     @staticmethod
     def get_language_codes(print_codes: bool = False) -> dict or None:
-        with open("language_codes.txt", "r") as f:
+        with open(
+            os.path.join(os.path.dirname(__file__), "language_codes.txt"), "r"
+        ) as f:
             lines = f.readlines()
 
         if print_codes:
@@ -121,9 +125,11 @@ class MKVAudioSubsDefaulter(object):
             # Print the lines in dynamic number of columns
             for i in range(num_lines_per_column):
                 columns = [
-                    lines[i + j * num_lines_per_column].strip()
-                    if i + j * num_lines_per_column < len(lines)
-                    else ""
+                    (
+                        lines[i + j * num_lines_per_column].strip()
+                        if i + j * num_lines_per_column < len(lines)
+                        else ""
+                    )
                     for j in range(num_columns)
                 ]
 
@@ -155,16 +161,18 @@ class MKVAudioSubsDefaulter(object):
                 "default": track_prop.get("default_track"),
                 "enabled": track_prop.get("enabled_track"),
                 "forced": track_prop.get("forced_track"),
-                "text_subtitles": track_prop.get("text_subtitles")
-                if track["type"] == "subtitles"
-                else None,
+                "text_subtitles": (
+                    track_prop.get("text_subtitles")
+                    if track["type"] == "subtitles"
+                    else None
+                ),
             }
 
         media_info = {}
 
-        if os.path.isdir(self.file_or_library_path[0]):
+        if os.path.isdir(self.file_or_library_path):
             media_dirs = self.list_directories(
-                self.file_or_library_path[0], self.file_search_depth[0]
+                self.file_or_library_path, self.file_search_depth
             )
             media_file_paths = []
 
@@ -174,19 +182,24 @@ class MKVAudioSubsDefaulter(object):
                 for path in media_paths:
                     media_file_paths += [os.path.join(folder, path)]
         else:
-            media_file_paths = [self.file_or_library_path[0]]
+            media_file_paths = [self.file_or_library_path]
 
         media_file_paths = list(
-            filter(lambda f: f.endswith(self.file_extensions[0]), media_file_paths)
+            filter(lambda f: f.endswith(self.file_extensions), media_file_paths)
         )
+
+        if not len(media_file_paths) > 0:
+            LOGGER.error(
+                f'Media file list is empty (no .mkv file(s) could be found), double check pathing: "{self.file_or_library_path}"'
+            )
 
         for file_path in tqdm(
             media_file_paths, desc="Gathering Media Files Info", unit="files"
         ):
             mkvmerge_path = os.path.join(
                 "mkvmerge"
-                if not self.mkvmerge_location[0]
-                else Path(self.mkvmerge_location[0])
+                if not self.mkvmerge_location
+                else Path(self.mkvmerge_location)
             )
 
             process = Popen(
@@ -206,11 +219,15 @@ class MKVAudioSubsDefaulter(object):
 
                 media_info[file_path] = tracks_info
             else:
-                raise Exception(
-                    "".join(
-                        error for error in json.loads(output.decode("utf8"))["errors"]
+                try:
+                    raise Exception(
+                        "".join(
+                            error
+                            for error in json.loads(output.decode("utf8"))["errors"]
+                        )
                     )
-                )
+                except json.decoder.JSONDecodeError:
+                    raise Exception(output.decode("utf8"))
 
         return media_info
 
@@ -247,8 +264,8 @@ class MKVAudioSubsDefaulter(object):
             no_changes = False
 
             for code, track_type in [
-                (self.audio_lang_code[0], "audio"),
-                (self.subtitle_lang_code[0], "subtitles"),
+                (self.audio_lang_code, "audio"),
+                (self.subtitle_lang_code, "subtitles"),
             ]:
                 code = code.lower() if code is not None else code
 
@@ -305,7 +322,7 @@ class MKVAudioSubsDefaulter(object):
                         )
                     else:
                         if new_default_track_num is None:
-                            if self.default_method[0] == "strict":
+                            if self.default_method == "strict":
                                 if code != "off" or current_default_track_num is None:
                                     LOGGER.error(
                                         f'"{track_type.capitalize()}" language ("{code}") track does not exist in media file: "{media_file}"'
@@ -326,9 +343,9 @@ class MKVAudioSubsDefaulter(object):
                                         "--set",
                                         "flag-default=0",
                                     ]
-                            elif self.default_method[0] == "lazy":
+                            elif self.default_method == "lazy":
                                 LOGGER.warning(
-                                    f'"{self.default_method[0]}" -dm/--default-method used, error ignored: "{track_type.capitalize()}" '
+                                    f'"{self.default_method}" -dm/--default-method used, error ignored: "{track_type.capitalize()}" '
                                     f'language ("{code}") track does not exist in media file: "{media_file}"'
                                 )
                         elif current_default_track_num == new_default_track_num:
@@ -362,8 +379,8 @@ class MKVAudioSubsDefaulter(object):
             if mkv_cmds and not no_changes:
                 mkvpropedit_path = os.path.join(
                     "mkvpropedit"
-                    if not self.mkvpropedit_location[0]
-                    else Path(self.mkvpropedit_location[0])
+                    if not self.mkvpropedit_location
+                    else Path(self.mkvpropedit_location)
                 )
 
                 full_cmd = [
@@ -378,12 +395,17 @@ class MKVAudioSubsDefaulter(object):
                     output, errors = process.communicate()
 
                     if process.returncode != 0:
-                        LOGGER.error(
-                            "".join(
-                                error
-                                for error in json.loads(output.decode("utf8"))["errors"]
+                        try:
+                            LOGGER.error(
+                                "".join(
+                                    error
+                                    for error in json.loads(output.decode("utf8"))[
+                                        "errors"
+                                    ]
+                                )
                             )
-                        )
+                        except json.decoder.JSONDecodeError:
+                            LOGGER.error(output.decode("utf8"))
                         failed_count += 1
                     else:
                         LOGGER.info(f"Successfully Processed: {media_file}")
@@ -521,10 +543,10 @@ def cmd_parse_args() -> argparse.Namespace:
     parser.add_argument(
         "-v",
         "--verbose",
-        default=0,
+        default=4,
         required=False,
         type=int,
-        help="Adjust log level (0: NONE (default), 1: INFO, 2: DEBUG, 3: WARNING, 4: ERROR)",
+        help="Adjust log level (0: NONE, 1: INFO, 2: DEBUG, 3: WARNING, 4: ERROR (default))",
     )
 
     misc_args.add_argument(
