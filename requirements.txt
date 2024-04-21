@@ -1,1 +1,1 @@
-tqdm
+tqdm==4.66.2 ; python_version >= "3.9" and python_version < "4.0"

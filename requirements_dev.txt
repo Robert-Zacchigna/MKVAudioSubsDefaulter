@@ -1,12 +1,12 @@
-black
-coverage
-flake8
-pipenv
-pre-commit
-pylint
-pytest
-pytest-cov
-pytest-mock
-python-dateutil
-tox
-tqdm
+black==24.4.0 ; python_version >= "3.9" and python_version < "4.0"
+coverage==7.4.4 ; python_version >= "3.9" and python_version < "4.0"
+flake8==7.0.0 ; python_version >= "3.9" and python_version < "4.0"
+pipenv==2023.12.1 ; python_version >= "3.9" and python_version < "4.0"
+pre-commit==3.7.0 ; python_version >= "3.9" and python_version < "4.0"
+pylint==3.1.0 ; python_version >= "3.9" and python_version < "4.0"
+pytest==8.1.1 ; python_version >= "3.9" and python_version < "4.0"
+pytest-cov==5.0.0 ; python_version >= "3.9" and python_version < "4.0"
+pytest-mock==3.14.0 ; python_version >= "3.9" and python_version < "4.0"
+python-dateutil==2.9.0.post0 ; python_version >= "3.9" and python_version < "4.0"
+tox==4.14.2  ; python_version >= "3.9" and python_version < "4.0"
+tqdm==4.66.2 ; python_version >= "3.9" and python_version < "4.0"
