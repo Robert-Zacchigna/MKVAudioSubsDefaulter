@@ -126,8 +126,15 @@ at a maximum, one directory deeper for media files.
 
 ### Verbosity
 
-There are various logging levels implemented in this cli: `0: NONE, 1: INFO, 2: DEBUG, 3: WARNING, 4: ERROR (Default)`.
-By default, no logs are produced but the log level can easily be changed using the `-v, --verbose` cli arg.
+The default log level is `ERROR` but it can easily be changed using the `-v, --verbose` cli arg using the corresponding
+level you desire, like so: `--verbose 0` or `-v 1`, etc...
+
+* Logging levels implemented in this cli
+  * `0 = NONE`: No logs will be generated/outputted
+  * `1 = INFO`: General info along with other logging level outputs (**EXCEPT** `DEBUG`)
+  * `2 = DEBUG`: Debug output used for troubleshooting and development (all other log levels also outputted)
+  * `3 = WARNING`: Only warnings will be outputted
+  * `4 = ERROR (Default)`: Only errors will be outputted (default log level)
 
 ## Advanced Usage (Orchestration)
 
