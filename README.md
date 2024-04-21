@@ -125,7 +125,7 @@ at a maximum, one directory deeper for media files.
 
 ### Verbosity
 
-There are various logging levels implemented in this cli: `0: NONE (Default), 1: INFO, 2: DEBUG, 3: WARNING, 4: ERROR`.
+There are various logging levels implemented in this cli: `0: NONE, 1: INFO, 2: DEBUG, 3: WARNING, 4: ERROR (Default)`.
 By default, no logs are produced but the log level can easily be changed using the `-v, --verbose` cli arg.
 
 ## Advanced Usage (Orchestration)
@@ -190,7 +190,7 @@ Here are few that I'm aware of listed in alphabetical order: [Airflow](https://g
 -d, --depth                         When using the '-lib' arg, how many directories deep to search within the specified library folder (Default: 0)
 -ext, --file-extensions             Specify media file extensions to search for in a comma separated list, EX: .mkv,.mp4,.avi
 -dr, --dry-run                      Perform a dry run, no changes made to files but summary of predicted changes will be outputted
--v, --verbose                       Adjust log level (0: NONE (Default), 1: INFO, 2: DEBUG, 3: WARNING, 4: ERROR)
+-v, --verbose                       Adjust log level (0: NONE, 1: INFO, 2: DEBUG, 3: WARNING, 4: ERROR (Default))
 -lc, --language-codes               Print language codes to console
 -V, --version                       Show program's version number and exit
 -h, --help                          Display argument descriptions and exit
@@ -219,3 +219,4 @@ Future possible improvements and/or additions:
 * Add Unit Tests
 * Rework cli to be a bit more modernized using [rich-click](https://github.com/ewels/rich-click)
 * Output media file statuses to log files depending on their status (see top of `change_default_tracks()` for statuses)
+* Add a `regex` arg to filter for specific media file based on their name using `regex`
