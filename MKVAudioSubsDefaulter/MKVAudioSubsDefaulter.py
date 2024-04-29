@@ -446,6 +446,26 @@ class MKVAudioSubsDefaulter(object):
         print("    Failed Processing: {:,}".format(failed_count))
 
 
+def _runtime_output_str(total_seconds: float) -> None:
+    runtime_str = ""
+
+    days = int(total_seconds // 86400)
+    hours = int(total_seconds // 3600)
+    minutes = int((total_seconds // 60) % 60)
+    seconds = round(total_seconds - minutes * 60, 2)
+
+    if days > 0:
+        runtime_str += f"{days} day(s) "
+    if hours > 0 or days > 0:
+        runtime_str += f"{hours} hr(s) "
+    if minutes > 0 or hours > 0 or days > 0:
+        runtime_str += f"{minutes} min(s) "
+    if seconds > 0 or minutes > 0 or hours > 0 or days > 0:
+        runtime_str += f"{seconds} sec(s) "
+
+    print(f"\n[*] Total Runtime: {runtime_str}[*]")
+
+
 def cmd_parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Simple python cli to set the default audio and/or subtitles of a single "
@@ -636,10 +656,4 @@ if __name__ == "__main__":
     main()
     end = perf_counter()
 
-    total_seconds = end - start
-
-    hours = int(total_seconds // 3600)
-    minutes = int((total_seconds // 60) % 60)
-    seconds = round(total_seconds - minutes * 60, 2)
-
-    print(f"\n[*] Total Runtime: {hours} hr(s) {minutes} min(s) {seconds} sec(s) [*]")
+    _runtime_output_str(end - start)
