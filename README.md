@@ -256,7 +256,9 @@ made to the cli in a clear and concise manner.
 
 Future possible improvements and/or additions:
 
-* Add Unit Tests
-* Rework cli to be a bit more modernized using [rich-click](https://github.com/ewels/rich-click)
-* Output media file statuses to log files depending on their status (see top of `change_default_tracks()` for statuses)
-* Add an arg to filter for specific media files based on a `regex` query
+- [ ] Add Unit Tests
+- [ ] Rework cli to be a bit more modernized using [rich-click](https://github.com/ewels/rich-click)
+- [ ] Output media file statuses to log files depending on their status (see top of `change_default_tracks()` for statuses)
+- [ ] Add `-fil, --filter` arg to filter for specific media files based on a `regex` query
+- [ ] Implement multi-threading queue for faster media file processing
+  - [ ] Add `-th, --threads` arg to specify number of threads to use
