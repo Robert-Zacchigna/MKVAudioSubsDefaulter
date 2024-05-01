@@ -168,30 +168,29 @@ class MKVAudioSubsDefaulter(object):
                 ),
             }
 
-        media_info = {}
+        media_file_paths = []
 
         if os.path.isdir(self.file_or_library_path):
             media_dirs = self.list_directories(
                 self.file_or_library_path, self.file_search_depth
             )
-            media_file_paths = []
 
             for folder in media_dirs:
                 _, _, media_paths = next(os.walk(folder))
 
                 for path in media_paths:
-                    media_file_paths += [os.path.join(folder, path)]
+                    if path.endswith(self.file_extensions):
+                        media_file_paths += [os.path.join(folder, path)]
         else:
-            media_file_paths = [self.file_or_library_path]
+            if self.file_or_library_path.endswith(self.file_extensions):
+                media_file_paths = [self.file_or_library_path]
 
-        media_file_paths = list(
-            filter(lambda f: f.endswith(self.file_extensions), media_file_paths)
-        )
-
-        if not len(media_file_paths) > 0:
+        if len(media_file_paths) == 0:
             LOGGER.error(
                 f'Media file list is empty (no .mkv file(s) could be found), double check pathing: "{self.file_or_library_path}"'
             )
+
+        media_info = {}
 
         for file_path in tqdm(
             media_file_paths, desc="Gathering Media Files Info", unit="files"
