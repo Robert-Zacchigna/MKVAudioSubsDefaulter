@@ -107,9 +107,7 @@ class MKVAudioSubsDefaulter(object):
 
     @staticmethod
     def get_language_codes(print_codes: bool = False) -> dict or None:
-        with open(
-            os.path.join(os.path.dirname(__file__), "language_codes.txt"), "r"
-        ) as f:
+        with open(os.path.join(os.path.dirname(__file__), "language_codes.txt"), "r") as f:
             lines = f.readlines()
 
         if print_codes:
@@ -118,9 +116,7 @@ class MKVAudioSubsDefaulter(object):
 
             # Calculate the number of columns based on the terminal width
             max_column_width = max(len(line.strip()) for line in lines)
-            num_columns = terminal_width // (
-                max_column_width + 1
-            )  # Add padding between columns
+            num_columns = terminal_width // (max_column_width + 1)  # Add padding between columns
 
             # Calculate the number of lines per column
             num_lines_per_column = (len(lines) + num_columns - 1) // num_columns
@@ -165,18 +161,14 @@ class MKVAudioSubsDefaulter(object):
                 "enabled": track_prop.get("enabled_track"),
                 "forced": track_prop.get("forced_track"),
                 "text_subtitles": (
-                    track_prop.get("text_subtitles")
-                    if track["type"] == "subtitles"
-                    else None
+                    track_prop.get("text_subtitles") if track["type"] == "subtitles" else None
                 ),
             }
 
         media_file_paths = []
 
         if os.path.isdir(self.file_or_library_path):
-            media_dirs = self.list_directories(
-                self.file_or_library_path, self.file_search_depth
-            )
+            media_dirs = self.list_directories(self.file_or_library_path, self.file_search_depth)
 
             for folder in media_dirs:
                 _, _, media_file_names = next(os.walk(folder))
@@ -197,18 +189,12 @@ class MKVAudioSubsDefaulter(object):
 
         media_info = {}
 
-        for file_path in tqdm(
-            media_file_paths, desc="Gathering Media Files Info", unit="files"
-        ):
+        for file_path in tqdm(media_file_paths, desc="Gathering Media Files Info", unit="files"):
             mkvmerge_path = os.path.join(
-                "mkvmerge"
-                if not self.mkvmerge_location
-                else Path(self.mkvmerge_location)
+                "mkvmerge" if not self.mkvmerge_location else Path(self.mkvmerge_location)
             )
 
-            process = Popen(
-                [mkvmerge_path, "-J", file_path], shell=True, stdout=PIPE, stderr=PIPE
-            )
+            process = Popen([mkvmerge_path, "-J", file_path], shell=True, stdout=PIPE, stderr=PIPE)
             output, errors = process.communicate()
 
             if process.returncode == 0:
@@ -217,18 +203,13 @@ class MKVAudioSubsDefaulter(object):
 
                 for track in media_tracks_info:
                     if track["type"] in ["audio", "subtitles"]:
-                        tracks_info[track["type"]][track["id"]] = extract_track_info(
-                            track
-                        )
+                        tracks_info[track["type"]][track["id"]] = extract_track_info(track)
 
                 media_info[file_path] = tracks_info
             else:
                 try:
                     raise Exception(
-                        "".join(
-                            error
-                            for error in json.loads(output.decode("utf8"))["errors"]
-                        )
+                        "".join(error for error in json.loads(output.decode("utf8"))["errors"])
                     )
                 except json.decoder.JSONDecodeError:
                     raise Exception(output.decode("utf8"))
@@ -258,9 +239,7 @@ class MKVAudioSubsDefaulter(object):
             media_file_types[media_file_ext] += 1
 
             if not media_file.lower().endswith(".mkv"):
-                LOGGER.warning(
-                    f'Skipping File - "{media_file}" is NOT a matroska (.mkv) file'
-                )
+                LOGGER.warning(f'Skipping File - "{media_file}" is NOT a matroska (.mkv) file')
                 invalid_count += 1
                 continue
 
@@ -284,10 +263,7 @@ class MKVAudioSubsDefaulter(object):
 
                             if code not in [track["language"], "off"]:
                                 track_num = (
-                                    (
-                                        current_default_track_num
-                                        - len(tracks_info.get("audio", {}))
-                                    )
+                                    (current_default_track_num - len(tracks_info.get("audio", {})))
                                     if track_type == "subtitles"
                                     else current_default_track_num
                                 )
@@ -298,20 +274,13 @@ class MKVAudioSubsDefaulter(object):
                                     "--set",
                                     "flag-default=0",
                                 ]
-                            LOGGER.debug(
-                                f"Current Default - File: {media_file}, Track: {track}"
-                            )
-                        elif (
-                            track_type == "subtitles"
-                            and current_default_track_num is None
-                        ):
+                            LOGGER.debug(f"Current Default - File: {media_file}, Track: {track}")
+                        elif track_type == "subtitles" and current_default_track_num is None:
                             current_default_track_num = "off"
 
                         if track["language"] == code:
                             new_default_track_num = track_num
-                            LOGGER.debug(
-                                f"New Default - File: {media_file}, Track: {track}"
-                            )
+                            LOGGER.debug(f"New Default - File: {media_file}, Track: {track}")
                         elif current_default_track_num == code == "off":
                             new_default_track_num = code
 
@@ -402,10 +371,7 @@ class MKVAudioSubsDefaulter(object):
                         try:
                             LOGGER.error(
                                 "".join(
-                                    error
-                                    for error in json.loads(output.decode("utf8"))[
-                                        "errors"
-                                    ]
+                                    error for error in json.loads(output.decode("utf8"))["errors"]
                                 )
                             )
                         except json.decoder.JSONDecodeError:
@@ -477,6 +443,7 @@ def cmd_parse_args() -> argparse.Namespace:
         add_help=False,
         formatter_class=argparse.RawTextHelpFormatter,
     )
+
     file_or_library = parser.add_mutually_exclusive_group(required=False)
     misc_args = parser.add_mutually_exclusive_group(required=False)
 
@@ -590,57 +557,59 @@ def cmd_parse_args() -> argparse.Namespace:
         action="store_true",
         help="Print language codes to console",
     )
-    misc_args.add_argument(
-        "-V", "--version", action="version", version=f"%(prog)s {__version__}"
-    )
+    misc_args.add_argument("-V", "--version", action="version", version=f"%(prog)s {__version__}")
     misc_args.add_argument(
         "-h", "--help", action="help", help="Display argument descriptions and exit"
     )
 
     args = parser.parse_args()
 
+    # Check for exclusive use of -lc/--language-codes
     if args.language_codes and len(sys.argv) >= 3:
         raise parser.error(
             "-lc/--language-codes can only be used by itself (no other args should be defined)"
         )
 
+    # Check for valid values of -dm/--default-method
     if args.default_method and args.default_method not in ["strict", "lazy"]:
         raise parser.error(
             "-dm/--default-method can either be 'strict' or 'lazy', refer to -h/--help for more info"
         )
 
+    # Check for required arguments when using -a/--audio or -s/--subtitle
     if args.audio or args.subtitle:
         if not args.file and not args.library:
             raise parser.error(
                 "-f/--file or -lib/--library is required when using -a/--audio and/or -s/--subtitle"
             )
 
+    # Check for required arguments when using -f/--file or -lib/--library
     if args.file or args.library:
         if not (args.audio or args.subtitle):
             raise parser.error(
                 "-a/--audio or -s/--subtitle is required when using -f/--file or -lib/--library"
             )
 
+    # Check for valid use of -d/--depth
     if args.depth and not args.library:
         parser.error("-d/--depth can only be used with the -lib/--library arg")
 
+    # Check for valid value of -a/--audio
     if args.audio and args.audio.lower() == "off":
         raise parser.error('-a/--audio option cannot be set to "off"')
 
+    # Check for valid use of -regfil/--regex-filter
     if args.regex_filter and not args.library:
-        raise parser.error(
-            "-regfil/--regex-filter can only be used with the -lib/--library arg"
-        )
+        raise parser.error("-regfil/--regex-filter can only be used with the -lib/--library arg")
 
-    if args.file_extensions:
-        args.file_extensions = tuple(str(args.file_extensions).split(","))
-    else:
-        args.file_extensions = tuple([".mkv"])
+    # Convert file extensions to tuple if provided, otherwise set default
+    args.file_extensions = tuple(
+        (str(args.file_extensions).split(",") if args.file_extensions else [".mkv"])
+    )
 
+    # Check for valid use of -v/--verbose
     if args.verbose and not (args.file or args.library):
-        raise parser.error(
-            "'-v/--verbose' can only be used with -f/--file or -lib/--library"
-        )
+        raise parser.error("'-v/--verbose' can only be used with -f/--file or -lib/--library")
 
     return args
 

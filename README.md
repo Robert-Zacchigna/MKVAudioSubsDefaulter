@@ -52,7 +52,7 @@ _without_ having to remux the whole file (which this cli aims to make as easy as
 ## Usage
 
 ```
-usage: MKVAudioSubsDefaulter.py [-mkve-loc MKVPROPEDIT_LOCATION] [-mkvpe-loc MKVMERGE_LOCATION] [-f FILE | -lib LIBRARY] [-a AUDIO] [-s SUBTITLE] [-dm DEFAULT_METHOD] [-d DEPTH] [-ext FILE_EXTENSIONS] [-dr] [-v VERBOSE] [-lc | -V | -h]
+usage: MKVAudioSubsDefaulter.py [-mkve-loc MKVPROPEDIT_LOCATION] [-mkvpe-loc MKVMERGE_LOCATION] [-f FILE | -lib LIBRARY] [-a AUDIO] [-s SUBTITLE] [-dm DEFAULT_METHOD] [-d DEPTH] [-ext FILE_EXTENSIONS] [-regfil REGEX_FILTER] [-dr] [-v VERBOSE] [-lc | -V | -h]
 ```
 
 ### Quick Start Examples
