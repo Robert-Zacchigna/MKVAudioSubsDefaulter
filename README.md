@@ -3,7 +3,6 @@
 [![GitHub Release](https://img.shields.io/github/v/release/Robert-Zacchigna/MKVAudioSubsDefaulter)](https://github.com/Robert-Zacchigna/MKVAudioSubsDefaulter/releases) ![GitHub License](https://img.shields.io/github/license/Robert-Zacchigna/MKVAudioSubsDefaulter%20) ![GitHub Pipenv locked Python version](https://img.shields.io/github/pipenv/locked/python-version/Robert-Zacchigna/MKVAudioSubsDefaulter?color=blue) ![GitHub commits since latest release](https://img.shields.io/github/commits-since/Robert-Zacchigna/MKVAudioSubsDefaulter/latest)
 ![GitHub Issues or Pull Requests](https://img.shields.io/github/issues/Robert-Zacchigna/MKVAudioSubsDefaulter) ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/Robert-Zacchigna/MKVAudioSubsDefaulter/total) [![GitHub Downloads (all assets, latest release)](https://img.shields.io/github/downloads/Robert-Zacchigna/MKVAudioSubsDefaulter/latest/total)](https://github.com/Robert-Zacchigna/MKVAudioSubsDefaulter/releases/latest)
 
-
 Simple python cli to set the default audio and/or subtitles of a single matroska (.mkv) file or a library of files
 WITHOUT having to remux the file.
 

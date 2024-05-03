@@ -11,7 +11,7 @@ from time import perf_counter
 
 from tqdm import tqdm
 
-__version__ = "1.2.0"
+__version__ = "1.2.1"
 LOGGER = logging.getLogger(__name__)
 
 
@@ -25,18 +25,22 @@ class MKVAudioSubsDefaulter(object):
     :param subtitle_lang_code: Desired subtitle language (refer to language codes (CAN be 'OFF'): -lc, --language-codes)
     :type subtitle_lang_code: str, required
     :param log_level: Adjust log level (0: NONE (Default), 1: INFO, 2: DEBUG, 3: WARNING, 4: ERROR)
-    :type log_level: str, optional
-    :param default_method: The method of changing the default audio and subtitle language tracks ('strict' or 'lazy')
+    :type log_level: int, optional
+    :param default_method: The method of changing the default audio and subtitle language tracks: 'strict' (default) or 'lazy'
     :type default_method: str, optional
     :param file_search_depth: When using the '-lib' arg, how many directories deep to search within the specified library
                               folder (Default: 0)
-    :type file_search_depth: str, optional
+    :type file_search_depth: int, optional
     :param file_extensions: Specify media file extensions to search for in a comma separated list, EX: .mkv,.mp4,.avi
-    :type file_extensions: str, optional
+    :type file_extensions: tuple[str], optional
+    :param regex_filter: When using the '-lib/--library' arg, specify a regex query to filter for specific media files
+    :type regex_filter: str, optional
     :param mkvpropedit_location: Full path of "mkvpropedit" binary location (OPTIONAL if the binary is on system path).
     :type mkvpropedit_location: str, optional
     :param mkvmerge_location: Full path of "mkvmerge" binary location (OPTIONAL if the binary is on system path).
     :type mkvmerge_location: str, optional
+    :param dry_run: If set, no changes will be made to files but summary of predicted changes will be outputted
+    :type dry_run: bool, optional
     """
 
     def __init__(
@@ -331,6 +335,7 @@ class MKVAudioSubsDefaulter(object):
                             )
 
                             flag = 0 if new_default_track_num == "off" else 1
+
                             new_default_track_num = (
                                 current_default_track_num
                                 if new_default_track_num == "off"
@@ -395,11 +400,11 @@ class MKVAudioSubsDefaulter(object):
                 unchanged_count += 1
 
         print(
-            "\n{} Total Files: {:,}".format(
+            "\n{} Total Files: {:,}\n".format(
                 "(DRY RUN)" if self.dry_run else " " * 9, len(media_files_info)
             )
+            + ("=" * 28)
         )
-        print("=" * 28)
 
         for key, val in media_file_types.items():
             print("{:>21}: {:,}".format(key, val))
@@ -604,7 +609,7 @@ def cmd_parse_args() -> argparse.Namespace:
 
     # Convert file extensions to tuple if provided, otherwise set default
     args.file_extensions = tuple(
-        (str(args.file_extensions).split(",") if args.file_extensions else [".mkv"])
+        str(args.file_extensions).split(",") if args.file_extensions else [".mkv"]
     )
 
     # Check for valid use of -v/--verbose
