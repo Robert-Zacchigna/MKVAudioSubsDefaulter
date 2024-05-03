@@ -2,6 +2,7 @@ import argparse
 import json
 import logging
 import os
+import re
 import sys
 from pathlib import Path
 from subprocess import PIPE
@@ -10,7 +11,7 @@ from time import perf_counter
 
 from tqdm import tqdm
 
-__version__ = "1.1.1"
+__version__ = "1.2.0"
 LOGGER = logging.getLogger(__name__)
 
 
@@ -47,6 +48,7 @@ class MKVAudioSubsDefaulter(object):
         default_method: str = "strict",
         file_search_depth: int = 0,
         file_extensions: tuple[str] = tuple([".mkv"]),
+        regex_filter: str = None,
         mkvpropedit_location: str = None,
         mkvmerge_location: str = None,
         dry_run: bool = False,
@@ -58,6 +60,7 @@ class MKVAudioSubsDefaulter(object):
         self.default_method = default_method
         self.file_search_depth = file_search_depth
         self.file_extensions = file_extensions
+        self.regex_filter = regex_filter
         self.mkvpropedit_location = mkvpropedit_location
         self.mkvmerge_location = mkvmerge_location
         self.dry_run = dry_run
@@ -176,11 +179,13 @@ class MKVAudioSubsDefaulter(object):
             )
 
             for folder in media_dirs:
-                _, _, media_paths = next(os.walk(folder))
+                _, _, media_file_names = next(os.walk(folder))
 
-                for path in media_paths:
-                    if path.endswith(self.file_extensions):
-                        media_file_paths += [os.path.join(folder, path)]
+                for name in media_file_names:
+                    if name.endswith(self.file_extensions) and (
+                        not self.regex_filter or re.match(self.regex_filter, name)
+                    ):
+                        media_file_paths.append(os.path.join(folder, name))
         else:
             if self.file_or_library_path.endswith(self.file_extensions):
                 media_file_paths = [self.file_or_library_path]
@@ -496,6 +501,7 @@ def cmd_parse_args() -> argparse.Namespace:
     file_or_library.add_argument(
         "-f", "--file", type=str, help="Full file path of desired .mkv file"
     )
+
     file_or_library.add_argument(
         "-lib",
         "--library",
@@ -540,7 +546,8 @@ def cmd_parse_args() -> argparse.Namespace:
         "--depth",
         required=False,
         type=int,
-        help="When using the '-lib' arg, how many directories deep to search within the specified library folder (Default: 0)",
+        help="When using the '-lib/--library' arg, specify how many directories deep to search\n"
+        "within the specified library folder (Default: 0)",
     )
 
     parser.add_argument(
@@ -548,7 +555,16 @@ def cmd_parse_args() -> argparse.Namespace:
         "--file-extensions",
         required=False,
         type=str,
-        help="Specify media file extensions to search for in a comma separated list (default: .mkv), EX: .mkv,.mp4,.avi",
+        help="Specify media file extensions to search for in a comma separated list (Default: '.mkv'),\n"
+        "EX: '.mkv,.mp4,.avi'",
+    )
+
+    parser.add_argument(
+        "-regfil",
+        "--regex-filter",
+        required=False,
+        type=str,
+        help="When using the '-lib/--library' arg, specify a regex query to filter for specific\nmedia files (Default: None)",
     )
 
     parser.add_argument(
@@ -588,11 +604,6 @@ def cmd_parse_args() -> argparse.Namespace:
             "-lc/--language-codes can only be used by itself (no other args should be defined)"
         )
 
-    if args.verbose and not (args.file or args.library):
-        raise parser.error(
-            "'-v/--verbose' can only be used with -f/--file or -lib/--library"
-        )
-
     if args.default_method and args.default_method not in ["strict", "lazy"]:
         raise parser.error(
             "-dm/--default-method can either be 'strict' or 'lazy', refer to -h/--help for more info"
@@ -616,10 +627,20 @@ def cmd_parse_args() -> argparse.Namespace:
     if args.audio and args.audio.lower() == "off":
         raise parser.error('-a/--audio option cannot be set to "off"')
 
+    if args.regex_filter and not args.library:
+        raise parser.error(
+            "-regfil/--regex-filter can only be used with the -lib/--library arg"
+        )
+
     if args.file_extensions:
         args.file_extensions = tuple(str(args.file_extensions).split(","))
     else:
         args.file_extensions = tuple([".mkv"])
+
+    if args.verbose and not (args.file or args.library):
+        raise parser.error(
+            "'-v/--verbose' can only be used with -f/--file or -lib/--library"
+        )
 
     return args
 
@@ -635,6 +656,7 @@ def main():
         default_method=args.default_method if args.default_method else "strict",
         file_search_depth=args.depth if args.depth else 0,
         file_extensions=args.file_extensions,
+        regex_filter=args.regex_filter,
         mkvpropedit_location=args.mkvpropedit_location,
         mkvmerge_location=args.mkvmerge_location,
         dry_run=args.dry_run,
@@ -642,6 +664,9 @@ def main():
 
     # Set logging level
     mkv.set_log_level()
+
+    if args.regex_filter:
+        LOGGER.info(f'Using Regex Filter: "{args.regex_filter}"')
 
     if args.language_codes:
         mkv.get_language_codes(print_codes=True)
