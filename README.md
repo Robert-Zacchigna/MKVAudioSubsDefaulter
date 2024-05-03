@@ -281,6 +281,6 @@ Future possible improvements and/or additions (in no particular order):
 - [ ] Add Unit Tests
 - [ ] Rework cli to be a bit more modernized using [rich-click](https://github.com/ewels/rich-click)
 - [ ] Output media file statuses to log files depending on their status (see top of `change_default_tracks()` for statuses)
-- [x] Add `-regfil, --regex-filter` arg to filter for specific media files based on a `regex` query
+- [x] (**COMPLETED:** `05/03/2024`) Add `-regfil, --regex-filter` arg to filter for specific media files based on a `regex` query
 - [ ] Implement multi-threading queue for faster media file processing
   - [ ] Add `-th, --threads` arg to specify number of threads to use
