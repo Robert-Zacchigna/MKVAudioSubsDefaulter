@@ -22,6 +22,7 @@ _without_ having to remux the whole file (which this cli aims to make as easy as
   * [Language Codes (Audio and Subtitles)](#language-codes-audio-and-subtitles)
   * [File vs. Library](#file-vs-library)
   * [Default Method: Strict vs. Lazy](#default-method-strict-vs-lazy)
+  * [Regex Filtering](#regex-filtering)
   * [Depth](#depth)
   * [Verbosity](#verbosity)
 * [Advanced Usage (Orchestration)](#advanced-usage-orchestration)
@@ -58,6 +59,7 @@ usage: MKVAudioSubsDefaulter.py [-mkve-loc MKVPROPEDIT_LOCATION] [-mkvpe-loc MKV
 * VERBOSE: `python MKVAudioSubsDefaulter.py -f "path/to/your/file" -a eng -s off -v 1`
 * LAZY: `python MKVAudioSubsDefaulter.py -f "path/to/your/file" -a eng -s off -v 1 -dm lazy`
 * DEPTH: `python MKVAudioSubsDefaulter.py -lib "path/to/your/library" -a eng -s eng -v 1 -d 1 -dm lazy`
+* REGEX-FILTER: `python MKVAudioSubsDefaulter.py -lib "path/to/your/library" -a eng -s eng -v 1 -d 1 -dm lazy -regfil (The|Good|Knight)`
 * DRY-RUN: `python MKVAudioSubsDefaulter.py -lib "path/to/your/library" -a eng -s spa -v 1 -d 1 -dr`
 
 ### MKVToolNix (mkvpropedit and mkvmerge)
@@ -112,6 +114,18 @@ and subtitle tracks must exist in the track list (if ONE is missing, then no cha
 tracks must exist in the track list (if BOTH are missing, then no changes made to file)
   * EX: If the audio language track is missing but not the subtitle track, then the audio
   stays the same and the default subtitle track is changed (and vice verse)
+
+### Regex Filtering
+
+The regex filtering arg (`-regfil, --regex-filter`) can only be used with the library arg (`-lib, --library`) and it
+allows for the specification of a [regex query](https://en.wikipedia.org/wiki/Regular_expression) to be applied as a
+filter when searching through a media library for specific media files to apply defaults to.
+
+**For example**, this query `(The|Good|Knight)`, will only pick out media files that have names that start with either
+"The", "Good", or "Knight" (all other names will be ignored).
+
+> **NOTE:** This is a very simple example but any valid regex will work. If you want to play around with python regex,
+> I've found this site to be helpful when developing regex query strings: [Pythex](https://pythex.org/)
 
 ### Depth
 
@@ -195,8 +209,12 @@ Here are few that I'm aware of listed in alphabetical order: [Airflow](https://g
                                       * EX: If the audio language track is missing but not the subtitle track, then the audio
                                         stays the same and the default subtitle track is changed (and vice verse)
 
--d, --depth                         When using the '-lib' arg, how many directories deep to search within the specified library folder (Default: 0)
--ext, --file-extensions             Specify media file extensions to search for in a comma separated list, EX: .mkv,.mp4,.avi
+-d, --depth                         When using the '-lib/--library' arg, specify how many directories deep to search
+                                    within the specified library folder (Default: 0)
+-ext, --file-extensions             Specify media file extensions to search for in a comma separated list (Default: '.mkv'),
+                                    EX: '.mkv,.mp4,.avi'
+-regfil, --regex-filter             When using the '-lib/--library' arg, specify a regex query to filter for specific
+                                    media files (Default: None)
 -dr, --dry-run                      Perform a dry run, no changes made to files but summary of predicted changes will be outputted
 -v, --verbose                       Adjust log level (0: NONE, 1: INFO, 2: DEBUG, 3: WARNING, 4: ERROR (Default))
 -lc, --language-codes               Print language codes to console
@@ -254,11 +272,11 @@ made to the cli in a clear and concise manner.
 
 ## Future Improvements
 
-Future possible improvements and/or additions:
+Future possible improvements and/or additions (in no particular order):
 
 - [ ] Add Unit Tests
 - [ ] Rework cli to be a bit more modernized using [rich-click](https://github.com/ewels/rich-click)
 - [ ] Output media file statuses to log files depending on their status (see top of `change_default_tracks()` for statuses)
-- [ ] Add `-fil, --filter` arg to filter for specific media files based on a `regex` query
+- [x] Add `-regfil, --regex-filter` arg to filter for specific media files based on a `regex` query
 - [ ] Implement multi-threading queue for faster media file processing
   - [ ] Add `-th, --threads` arg to specify number of threads to use
