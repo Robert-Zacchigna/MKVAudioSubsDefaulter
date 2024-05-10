@@ -6,10 +6,11 @@
 Simple python cli to set the default audio and/or subtitles of a single matroska (.mkv) file or a library of files
 WITHOUT having to remux the file.
 
-The main use case for this cli was being able to set the default tracks of matroska media files without having to remux the file.
+The main use case for this cli was being able to set the default tracks of matroska media files without having to remux
+the file.
 
-Matroska media files have the unique makeup of being to edit parts of the metadata of the file (like the default tracks)
-_without_ having to remux the whole file (which this cli aims to make as easy as possible).
+Matroska media files have the unique makeup of being able to edit parts of the metadata of the file (like the default
+tracks) _without_ having to remux the whole file (which this cli aims to make as easy as possible).
 
 > **NOTE:** To be extra clear, this cli only works on `.mkv` files and will filter out all other file types.
 
@@ -43,6 +44,7 @@ _without_ having to remux the whole file (which this cli aims to make as easy as
 * Python **3.9+** ([python.org](https://www.python.org/downloads/))
   * External Python Modules
     * [tqdm](https://github.com/tqdm/tqdm) (for the progress bar)
+      * `pip install tqdm`
 * [MKVToolNix](https://mkvtoolnix.download/downloads.html) (Download for your OS)
   * You specifically need the following binaries from `MKVToolNix` added to your system `path`
     * [mkvmerge](https://mkvtoolnix.download/doc/mkvmerge.html)
@@ -71,8 +73,8 @@ In order to use this cli you will need to have downloaded [MKVToolNix](https://m
 [mkvmerge](https://mkvtoolnix.download/doc/mkvmerge.html) and [mkvpropedit](https://mkvtoolnix.download/doc/mkvpropedit.html)
 to your system `path` OR specify the full path of those binaries using these cli args:
 
-* `-mkvm-loc, mkvmerge-location`
-* `-mkvpe-loc, mkvpropedit-location`
+* `-mkvm-loc, --mkvmerge-location`
+* `-mkvpe-loc, --mkvpropedit-location`
 
 ### Dry Run
 
@@ -109,14 +111,14 @@ From there you can choose to change the default audio (`-a, --audio`) and/or sub
 The default methodologies for changing the track defaults is as follows (`-dm, --default-method`):
 > **NOTE:** This only applies if you are trying to change **audio** AND **subtitles** at the SAME TIME
 
-* **"Strict"** (default): The specified NEW media file language tracks for BOTH the audio
-and subtitle tracks must exist in the track list (if ONE is missing, then no changes made to file)
+* **"Strict"** (default): The specified NEW media file language tracks for BOTH the `audio`
+and `subtitle` tracks must exist in the track list (if ONE is missing, then no changes made to file).
   * EX: If the audio language track is missing but not the subtitle track, then no changes
-  are made to the file even though the subtitle track exists
-* **"Lazy"**: The specified NEW media file language tracks for EITHER audio and/or subtitle
-tracks must exist in the track list (if BOTH are missing, then no changes made to file)
-  * EX: If the audio language track is missing but not the subtitle track, then the audio
-  stays the same and the default subtitle track is changed (and vice verse)
+  are made to the file even though the subtitle track exists.
+* **"Lazy"**: The specified NEW media file language tracks for EITHER `audio` and/or `subtitle`
+tracks must exist in the track list (if BOTH are missing, then no changes made to file).
+  * EX: If the audio language track is missing but NOT the subtitle track, then the audio
+  stays the same and the default subtitle track is changed (and vice verse).
 
 ### Regex Filtering
 
@@ -279,7 +281,9 @@ Future possible improvements and/or additions (in no particular order):
 
 - [ ] Add Unit Tests
 - [ ] Rework cli to be a bit more modernized using [rich-click](https://github.com/ewels/rich-click)
-- [ ] Output media file statuses to log files depending on their status (see top of `change_default_tracks()` for statuses)
-- [x] (**COMPLETED:** `05/03/2024`) Add `-regfil, --regex-filter` arg to filter for specific media files based on a `regex` query
-- [ ] Implement multi-threading queue for faster media file processing
-  - [ ] Add `-th, --threads` arg to specify number of threads to use
+- [ ] Output media file statuses to log files depending on their status (see top of `change_default_tracks()`
+      for statuses)
+- [x] (**COMPLETED:** `05/03/2024`) Add `-regfil, --regex-filter` arg to filter for specific media files based on a
+      `regex` query
+- [ ] Implement **multi-processing queue** for faster media file processing
+  - [ ] Add `-plsz, --pool-size` arg to specify size of processing pool
