@@ -19,6 +19,7 @@ tracks) _without_ having to remux the whole file (which this cli aims to make as
 ## Contents
 
 * [Dependencies](#dependencies)
+* [Future Improvements](#future-improvements)
 * [Usage](#usage)
   * [Quick Start Examples](#quick-start-examples)
   * [MKVToolNix (mkvpropedit and mkvmerge)](#mkvtoolnix-mkvpropedit-and-mkvmerge)
@@ -37,18 +38,30 @@ tracks) _without_ having to remux the whole file (which this cli aims to make as
 * [Suggestions](#suggestions)
 * [Contributions](#contributions)
   * [Development Setup](#development-setup)
-* [Future Improvements](#future-improvements)
 
 ## Dependencies
 
 * Python **3.9+** ([python.org](https://www.python.org/downloads/))
   * External Python Modules
     * [tqdm](https://github.com/tqdm/tqdm) (for the progress bar)
-      * `pip install tqdm`
+      * `pip install -r requirements.txt`
 * [MKVToolNix](https://mkvtoolnix.download/downloads.html) (Download for your OS)
   * You specifically need the following binaries from `MKVToolNix` added to your system `path`
     * [mkvmerge](https://mkvtoolnix.download/doc/mkvmerge.html)
     * [mkvpropedit](https://mkvtoolnix.download/doc/mkvpropedit.html)
+
+## Future Improvements
+
+Future possible improvements and/or additions (in no particular order):
+
+- [ ] Add Unit Tests
+- [ ] Rework cli to be a bit more modernized using [rich-click](https://github.com/ewels/rich-click)
+- [ ] Output media file statuses to log files depending on their status (see top of `change_default_tracks()`
+      for statuses)
+- [x] (**COMPLETED:** `05/03/2024`) Add `-regfil, --regex-filter` arg to filter for specific media files based on a
+      `regex` query
+- [ ] Implement **multi-processing queue** for faster media file processing
+  - [ ] Add `-plsz, --pool-size` arg to specify size of processing pool
 
 ## Usage
 
@@ -274,16 +287,3 @@ made to the cli in a clear and concise manner.
 
 
 5. Thank you for your contribution to **MKVAudioSubsDefaulter**!
-
-## Future Improvements
-
-Future possible improvements and/or additions (in no particular order):
-
-- [ ] Add Unit Tests
-- [ ] Rework cli to be a bit more modernized using [rich-click](https://github.com/ewels/rich-click)
-- [ ] Output media file statuses to log files depending on their status (see top of `change_default_tracks()`
-      for statuses)
-- [x] (**COMPLETED:** `05/03/2024`) Add `-regfil, --regex-filter` arg to filter for specific media files based on a
-      `regex` query
-- [ ] Implement **multi-processing queue** for faster media file processing
-  - [ ] Add `-plsz, --pool-size` arg to specify size of processing pool
