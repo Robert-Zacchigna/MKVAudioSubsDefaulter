@@ -12,7 +12,7 @@ from time import perf_counter
 
 from tqdm import tqdm
 
-__version__ = "1.3.0"
+__version__ = "1.3.2"
 LOGGER = logging.getLogger(__name__)
 
 
