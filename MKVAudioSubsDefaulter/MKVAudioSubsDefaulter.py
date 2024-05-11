@@ -93,8 +93,6 @@ class MKVAudioSubsDefaulter(object):
         else:
             LOGGER.disabled = True
 
-        LOGGER.info(f"Log Level = {log_levels[self.log_level][1]}\n")
-
         return str(log_levels[self.log_level][1])
 
     @staticmethod
@@ -161,7 +159,7 @@ class MKVAudioSubsDefaulter(object):
             )
         return True
 
-    def process_media_file(self, file_path: str) -> [str, str]:
+    def process_media_file_info(self, file_path: str) -> [str, str]:
         def extract_track_info(track: dict) -> dict:
             track_prop = track["properties"]
 
@@ -229,7 +227,7 @@ class MKVAudioSubsDefaulter(object):
         with Pool(processes=self.pool_size) as pool:
             results = list(
                 tqdm(
-                    pool.imap(self.process_media_file, media_file_paths),
+                    pool.imap(self.process_media_file_info, media_file_paths),
                     total=len(media_file_paths),
                     desc="Gathering Media Files Info",
                     unit="files",
@@ -241,34 +239,29 @@ class MKVAudioSubsDefaulter(object):
 
         return media_info
 
-    def change_default_tracks(self, media_files_info: dict) -> None:
-        media_file_types = {}
-
+    def process_media_file_tracks(
+        self, media_file_info: tuple
+    ) -> tuple[tuple[str, int], int, int, int, int, int, int]:
         successful_count = 0
         estimated_successful = 0
         unchanged_count = 0
-        pattern_mismatch_count = 0
         miss_track_count = 0
         invalid_count = 0
         failed_count = 0
 
-        for media_file, tracks_info in tqdm(
-            media_files_info.items(), desc="Processing Media Files", unit="files"
-        ):
-            LOGGER.info("")
-            LOGGER.info(f"Processing media file: {media_file}")
+        self.set_log_level()
 
-            media_file_ext = os.path.splitext(media_file.lower())[1]
+        media_file, tracks_info = media_file_info
 
-            if media_file_ext not in media_file_types:
-                media_file_types[media_file_ext] = 0
-            media_file_types[media_file_ext] += 1
+        LOGGER.info("")
+        LOGGER.info(f"Processing media file: {media_file}")
 
-            if not media_file.lower().endswith(".mkv"):
-                LOGGER.warning(f'Skipping File - "{media_file}" is NOT a matroska (.mkv) file')
-                invalid_count += 1
-                continue
+        media_file_ext = os.path.splitext(media_file.lower())[1]
 
+        if not media_file.lower().endswith(".mkv"):
+            LOGGER.warning(f'Skipping File - "{media_file}" is NOT a matroska (.mkv) file')
+            invalid_count += 1
+        else:
             mkv_cmds = []
             no_changes = False
 
@@ -417,10 +410,47 @@ class MKVAudioSubsDefaulter(object):
                 LOGGER.warning(
                     f'No changes were made because one or more tracks did not exist in "{media_file}"'
                 )
-                pattern_mismatch_count += 1
             else:
                 LOGGER.info("No media file changes were made")
                 unchanged_count += 1
+
+        return (
+            (media_file_ext, 1),
+            successful_count,
+            estimated_successful,
+            unchanged_count,
+            miss_track_count,
+            invalid_count,
+            failed_count,
+        )
+
+    def change_default_tracks(self, media_files_info: dict) -> None:
+        media_file_types = {}
+
+        successful_count = 0
+        estimated_successful = 0
+        unchanged_count = 0
+        miss_track_count = 0
+        invalid_count = 0
+        failed_count = 0
+
+        with Pool(processes=self.pool_size) as pool:
+            for counts in tqdm(
+                pool.imap(self.process_media_file_tracks, media_files_info.items()),
+                total=len(media_files_info),
+                desc="Processing Media Files",
+                unit="files",
+            ):
+                if counts[0][0] not in media_file_types:
+                    media_file_types[counts[0][0]] = 0
+                media_file_types[counts[0][0]] += counts[0][1]
+
+                successful_count += counts[1]
+                estimated_successful += counts[2]
+                unchanged_count += counts[3]
+                miss_track_count += counts[4]
+                invalid_count += counts[5]
+                failed_count += counts[6]
 
         print(
             "\n{} Total Files: {:,}\n".format(
@@ -438,9 +468,8 @@ class MKVAudioSubsDefaulter(object):
         else:
             print("Successful Processing: {:,}".format(successful_count))
 
-        print("     Pattern Mismatch: {:,}".format(pattern_mismatch_count))
         print("  Unchanged/Untouched: {:,}".format(unchanged_count))
-        print("        Missing Track: {:,}".format(miss_track_count))
+        print("     Missing Track(s): {:,}".format(miss_track_count))
         print("         Invalid File: {:,}".format(invalid_count))
         print("    Failed Processing: {:,}".format(failed_count))
 
