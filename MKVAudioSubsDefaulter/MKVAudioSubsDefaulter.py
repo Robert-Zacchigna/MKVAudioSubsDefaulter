@@ -4,6 +4,7 @@ import logging
 import os
 import re
 import sys
+from multiprocessing import Pool
 from pathlib import Path
 from subprocess import PIPE
 from subprocess import Popen
@@ -11,7 +12,7 @@ from time import perf_counter
 
 from tqdm import tqdm
 
-__version__ = "1.2.1"
+__version__ = "1.3.0"
 LOGGER = logging.getLogger(__name__)
 
 
@@ -33,6 +34,9 @@ class MKVAudioSubsDefaulter(object):
     :type file_search_depth: int, optional
     :param file_extensions: Specify media file extensions to search for in a comma separated list, EX: .mkv,.mp4,.avi
     :type file_extensions: tuple[str], optional
+    :param pool_size: When using the '-lib/--library' arg, specify the size of the processing pool (number of concurrent
+                      processes) to speed up media file processing (Default: 1)
+    :type pool_size: int, optional
     :param regex_filter: When using the '-lib/--library' arg, specify a regex query to filter for specific media files
     :type regex_filter: str, optional
     :param mkvpropedit_location: Full path of "mkvpropedit" binary location (OPTIONAL if the binary is on system path).
@@ -52,6 +56,7 @@ class MKVAudioSubsDefaulter(object):
         default_method: str = "strict",
         file_search_depth: int = 0,
         file_extensions: tuple[str] = tuple([".mkv"]),
+        pool_size: int = 1,
         regex_filter: str = None,
         mkvpropedit_location: str = None,
         mkvmerge_location: str = None,
@@ -64,6 +69,7 @@ class MKVAudioSubsDefaulter(object):
         self.default_method = default_method
         self.file_search_depth = file_search_depth
         self.file_extensions = file_extensions
+        self.pool_size = pool_size
         self.regex_filter = regex_filter
         self.mkvpropedit_location = mkvpropedit_location
         self.mkvmerge_location = mkvmerge_location
@@ -150,11 +156,12 @@ class MKVAudioSubsDefaulter(object):
             code.split(":")[0] for code in self.get_language_codes(print_codes=False)
         ]:
             raise Exception(
-                f'[!] {track_type.capitalize()} language code ("{lang_code}") could not be found/verified, check code and try again [!]'
+                f"[!] {track_type.capitalize()} language code "
+                f'("{lang_code}") could not be found/verified, check code and try again [!]'
             )
         return True
 
-    def get_media_files_info(self) -> dict:
+    def process_media_file(self, file_path: str) -> [str, str]:
         def extract_track_info(track: dict) -> dict:
             track_prop = track["properties"]
 
@@ -169,6 +176,31 @@ class MKVAudioSubsDefaulter(object):
                 ),
             }
 
+        mkvmerge_path = os.path.join(
+            "mkvmerge" if not self.mkvmerge_location else Path(self.mkvmerge_location)
+        )
+
+        process = Popen([mkvmerge_path, "-J", file_path], shell=True, stdout=PIPE, stderr=PIPE)
+        output, errors = process.communicate()
+
+        if process.returncode == 0:
+            media_tracks_info = json.loads(output.decode("utf-8"))["tracks"]
+            tracks_info = {"audio": {}, "subtitles": {}}
+
+            for track in media_tracks_info:
+                if track["type"] in ["audio", "subtitles"]:
+                    tracks_info[track["type"]][track["id"]] = extract_track_info(track)
+
+            return file_path, tracks_info
+        else:
+            try:
+                raise Exception(
+                    "".join(error for error in json.loads(output.decode("utf8"))["errors"])
+                )
+            except json.decoder.JSONDecodeError:
+                raise Exception(output.decode("utf8"))
+
+    def get_media_files_info(self) -> dict:
         media_file_paths = []
 
         if os.path.isdir(self.file_or_library_path):
@@ -188,35 +220,24 @@ class MKVAudioSubsDefaulter(object):
 
         if len(media_file_paths) == 0:
             LOGGER.error(
-                f'Media file list is empty (no .mkv file(s) could be found), double check pathing: "{self.file_or_library_path}"'
+                f"Media file list is empty (no .mkv file(s) could "
+                f'be found), double check pathing and/or filters: "{self.file_or_library_path}", "{self.regex_filter}"'
             )
 
         media_info = {}
 
-        for file_path in tqdm(media_file_paths, desc="Gathering Media Files Info", unit="files"):
-            mkvmerge_path = os.path.join(
-                "mkvmerge" if not self.mkvmerge_location else Path(self.mkvmerge_location)
+        with Pool(processes=self.pool_size) as pool:
+            results = list(
+                tqdm(
+                    pool.imap(self.process_media_file, media_file_paths),
+                    total=len(media_file_paths),
+                    desc="Gathering Media Files Info",
+                    unit="files",
+                )
             )
 
-            process = Popen([mkvmerge_path, "-J", file_path], shell=True, stdout=PIPE, stderr=PIPE)
-            output, errors = process.communicate()
-
-            if process.returncode == 0:
-                media_tracks_info = json.loads(output.decode("utf-8"))["tracks"]
-                tracks_info = {"audio": {}, "subtitles": {}}
-
-                for track in media_tracks_info:
-                    if track["type"] in ["audio", "subtitles"]:
-                        tracks_info[track["type"]][track["id"]] = extract_track_info(track)
-
-                media_info[file_path] = tracks_info
-            else:
-                try:
-                    raise Exception(
-                        "".join(error for error in json.loads(output.decode("utf8"))["errors"])
-                    )
-                except json.decoder.JSONDecodeError:
-                    raise Exception(output.decode("utf8"))
+        for file_path, tracks_info in results:
+            media_info[file_path] = tracks_info
 
         return media_info
 
@@ -227,6 +248,7 @@ class MKVAudioSubsDefaulter(object):
         estimated_successful = 0
         unchanged_count = 0
         pattern_mismatch_count = 0
+        miss_track_count = 0
         invalid_count = 0
         failed_count = 0
 
@@ -304,6 +326,7 @@ class MKVAudioSubsDefaulter(object):
                                     LOGGER.error(
                                         f'"{track_type.capitalize()}" language ("{code}") track does not exist in media file: "{media_file}"'
                                     )
+                                    miss_track_count += 1
                                     no_changes = True
                                 else:
                                     LOGGER.info(
@@ -417,6 +440,7 @@ class MKVAudioSubsDefaulter(object):
 
         print("     Pattern Mismatch: {:,}".format(pattern_mismatch_count))
         print("  Unchanged/Untouched: {:,}".format(unchanged_count))
+        print("        Missing Track: {:,}".format(miss_track_count))
         print("         Invalid File: {:,}".format(invalid_count))
         print("    Failed Processing: {:,}".format(failed_count))
 
@@ -532,6 +556,16 @@ def cmd_parse_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
+        "-plsz",
+        "--pool-size",
+        required=False,
+        type=int,
+        help="When using the '-lib/--library' arg, specify the size of the processing pool\n(number of concurrent "
+        "processes) to speed up media file processing.\nDepending on your machine and size of your library, you "
+        "should stay between 1-10 (Default: 1)",
+    )
+
+    parser.add_argument(
         "-regfil",
         "--regex-filter",
         required=False,
@@ -595,17 +629,24 @@ def cmd_parse_args() -> argparse.Namespace:
                 "-a/--audio or -s/--subtitle is required when using -f/--file or -lib/--library"
             )
 
-    # Check for valid use of -d/--depth
-    if args.depth and not args.library:
-        parser.error("-d/--depth can only be used with the -lib/--library arg")
-
     # Check for valid value of -a/--audio
     if args.audio and args.audio.lower() == "off":
         raise parser.error('-a/--audio option cannot be set to "off"')
 
-    # Check for valid use of -regfil/--regex-filter
-    if args.regex_filter and not args.library:
-        raise parser.error("-regfil/--regex-filter can only be used with the -lib/--library arg")
+    if not args.library:
+        # Check for valid use of -d/--depth
+        if args.depth:
+            raise parser.error("-d/--depth can only be used with the -lib/--library arg")
+
+        # Check for valid use of -plsz/--pool-size
+        if args.pool_size:
+            raise parser.error("-plsz/--pool-size can only be used with the -lib/--library arg")
+
+        # Check for valid use of -regfil/--regex-filter
+        if args.regex_filter:
+            raise parser.error(
+                "-regfil/--regex-filter can only be used with the -lib/--library arg"
+            )
 
     # Convert file extensions to tuple if provided, otherwise set default
     args.file_extensions = tuple(
@@ -630,6 +671,7 @@ def main():
         default_method=args.default_method if args.default_method else "strict",
         file_search_depth=args.depth if args.depth else 0,
         file_extensions=args.file_extensions,
+        pool_size=args.pool_size if args.pool_size else 1,
         regex_filter=args.regex_filter,
         mkvpropedit_location=args.mkvpropedit_location,
         mkvmerge_location=args.mkvmerge_location,
