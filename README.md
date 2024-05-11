@@ -29,6 +29,7 @@ tracks) _without_ having to remux the whole file (which this cli aims to make as
   * [Default Method: Strict vs. Lazy](#default-method-strict-vs-lazy)
   * [Regex Filtering](#regex-filtering)
   * [Depth](#depth)
+  * [Multi-Processing](#multi-processing)
   * [Verbosity](#verbosity)
 * [Advanced Usage (Orchestration)](#advanced-usage-orchestration)
   * [Cron Schedule](#cron-schedule)
@@ -60,13 +61,13 @@ Future possible improvements and/or additions (in no particular order):
       for statuses)
 - [x] (**COMPLETED:** `05/03/2024`) Add `-regfil, --regex-filter` arg to filter for specific media files based on a
       `regex` query
-- [ ] Implement **multi-processing queue** for faster media file processing
-  - [ ] Add `-plsz, --pool-size` arg to specify size of processing pool
+- [x] (**COMPLETED:** `05/10/2024`) Implement **multi-processing** for faster media file processing
+  - [x] Add `-plsz, --pool-size` arg to specify size of processing pool
 
 ## Usage
 
 ```
-usage: MKVAudioSubsDefaulter.py [-mkve-loc MKVPROPEDIT_LOCATION] [-mkvpe-loc MKVMERGE_LOCATION] [-f FILE | -lib LIBRARY] [-a AUDIO] [-s SUBTITLE] [-dm DEFAULT_METHOD] [-d DEPTH] [-ext FILE_EXTENSIONS] [-regfil REGEX_FILTER] [-dr] [-v VERBOSE] [-lc | -V | -h]
+[-mkvpe-loc MKVPROPEDIT_LOCATION] [-mkvm-loc MKVMERGE_LOCATION] [-f FILE | -lib LIBRARY] [-a AUDIO] [-s SUBTITLE] [-dm DEFAULT_METHOD] [-d DEPTH] [-ext FILE_EXTENSIONS] [-plsz POOL_SIZE] [-regfil REGEX_FILTER] [-dr] [-v VERBOSE] [-lc | -V | -h]
 ```
 
 ### Quick Start Examples
@@ -78,6 +79,7 @@ usage: MKVAudioSubsDefaulter.py [-mkve-loc MKVPROPEDIT_LOCATION] [-mkvpe-loc MKV
 * LAZY: `python MKVAudioSubsDefaulter.py -f "path/to/your/file" -a eng -s off -v 1 -dm lazy`
 * DEPTH: `python MKVAudioSubsDefaulter.py -lib "path/to/your/library" -a eng -s eng -v 1 -d 1 -dm lazy`
 * REGEX-FILTER: `python MKVAudioSubsDefaulter.py -lib "path/to/your/library" -a eng -s eng -v 1 -d 1 -dm lazy -regfil (The|Good|Knight)`
+* MULTI-PROCESS: `python MKVAudioSubsDefaulter.py -lib "path/to/your/library" -a eng -s eng -v 1 -d 1 -dm lazy -regfil (The|Good|Knight) -plsz 2`
 * DRY-RUN: `python MKVAudioSubsDefaulter.py -lib "path/to/your/library" -a eng -s spa -v 1 -d 1 -dr`
 
 ### MKVToolNix (mkvpropedit and mkvmerge)
@@ -156,6 +158,15 @@ at a maximum, one directory deeper for media files.
 > wanted to, but it would take a considerable amount of time to complete the search through all of them (if it were
 > really 1000 directories deep).
 
+### Multi-Processing
+
+The pool-size arg (`-plsz, --pool-size`) uses the built-in python [multiprocessing](https://docs.python.org/3/library/multiprocessing.html) module and can be used to
+specify how big the processing pool should be. The bigger the pool, the faster media files will be processed.
+
+EX: `-plsz 2` creates a processing pool of 2
+
+> **NOTE:** Depending on your machine and size of your library, you should stay between 1-10 (Default: 1)
+
 ### Verbosity
 
 The default log level is `ERROR` but it can easily be changed using the `-v, --verbose` cli arg using the corresponding
@@ -231,6 +242,9 @@ Here are few that I'm aware of listed in alphabetical order: [Airflow](https://g
                                     within the specified library folder (Default: 0)
 -ext, --file-extensions             Specify media file extensions to search for in a comma separated list (Default: '.mkv'),
                                     EX: '.mkv,.mp4,.avi'
+-plsz, --pool-size                  When using the '-lib/--library' arg, specify the size of the processing pool
+                                    (number of concurrent processes) to speed up media file processing.
+                                    Depending on your machine and size of your library, you should stay between 1-10 (Default: 1)
 -regfil, --regex-filter             When using the '-lib/--library' arg, specify a regex query to filter for specific
                                     media files (Default: None)
 -dr, --dry-run                      Perform a dry run, no changes made to files but summary of predicted changes will be outputted
