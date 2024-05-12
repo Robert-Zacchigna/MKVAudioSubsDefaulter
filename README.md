@@ -177,7 +177,7 @@ level you desire, like so: `--verbose 0` or `-v 1`, etc...
   * `1 = INFO`: General info along with other logging level outputs (**EXCEPT** `DEBUG`)
   * `2 = DEBUG`: Debug output used for troubleshooting and development (all other log levels also outputted)
   * `3 = WARNING`: Only warnings will be outputted
-  * `4 = ERROR (Default)`: Only errors will be outputted (default log level)
+  * `4 = ERROR (Default)`: Only errors will be outputted (**default log level**)
 
 ## Advanced Usage (Orchestration)
 
@@ -211,21 +211,26 @@ that have already been processed.
 You could go even further add more logic to set different defaults depending on the specific media file. For example, if
 you like to watch certain media that you always want to consume in a specific language. There are tons of possibilities here.
 
-Here are few that I'm aware of listed in alphabetical order: [Airflow](https://github.com/apache/airflow),
-[dagster](https://github.com/dagster-io/dagster), [flyte](https://github.com/flyteorg/flyte),
-[luigi](https://github.com/spotify/luigi), [mage-ai](https://github.com/mage-ai/mage-ai),
-[Prefect](https://github.com/PrefectHQ/prefect).
+Here are few that I'm aware of listed in alphabetical order: [Airflow](https://github.com/apache/airflow), [dagster](https://github.com/dagster-io/dagster), [flyte](https://github.com/flyteorg/flyte), [luigi](https://github.com/spotify/luigi),
+[mage-ai](https://github.com/mage-ai/mage-ai), [Prefect](https://github.com/PrefectHQ/prefect).
 
 ## CLI Parameters
+
+CLI help output: `python MKVAudioSubsDefaulter.py -h `
 
 ```
 -mkvpe-loc, --mkvpropedit-location  Full path of "mkvpropedit" binary location (OPTIONAL if the binary is on system path).
                                     EX: "home/downloads/MKVToolNix/mmkvpropedit.exe"
+
 -mkvm-loc, --mkvmerge-location      Full path of "mkvmerge" binary location (OPTIONAL if the binary is on system path).
                                     EX: "home/downloads/MKVToolNix/mkvmerge.exe"
+
 -f, --file                          Full file path of desired .mkv file
+
 -lib, --library                     Full directory path of desired group of .mkv files
+
 -a, --audio                         Desired audio language (refer to language codes (CANNOT be 'OFF'): -lc, --language-codes)
+
 -s, --subtitle                      Desired subtitle language (refer to language codes (CAN be 'OFF'): -lc, --language-codes)
 
 -dm, --default-method               The method of changing the default audio and subtitle language tracks ('strict' or 'lazy')
@@ -240,17 +245,25 @@ Here are few that I'm aware of listed in alphabetical order: [Airflow](https://g
 
 -d, --depth                         When using the '-lib/--library' arg, specify how many directories deep to search
                                     within the specified library folder (Default: 0)
+
 -ext, --file-extensions             Specify media file extensions to search for in a comma separated list (Default: '.mkv'),
                                     EX: '.mkv,.mp4,.avi'
+
 -plsz, --pool-size                  When using the '-lib/--library' arg, specify the size of the processing pool
                                     (number of concurrent processes) to speed up media file processing.
                                     Depending on your machine and size of your library, you should stay between 1-10 (Default: 1)
+
 -regfil, --regex-filter             When using the '-lib/--library' arg, specify a regex query to filter for specific
                                     media files (Default: None)
+
 -dr, --dry-run                      Perform a dry run, no changes made to files but summary of predicted changes will be outputted
+
 -v, --verbose                       Adjust log level (0: NONE, 1: INFO, 2: DEBUG, 3: WARNING, 4: ERROR (Default))
+
 -lc, --language-codes               Print language codes to console
+
 -V, --version                       Show program's version number and exit
+
 -h, --help                          Display argument descriptions and exit
 ```
 
