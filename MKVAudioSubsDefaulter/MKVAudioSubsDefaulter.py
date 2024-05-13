@@ -10,9 +10,16 @@ from subprocess import PIPE
 from subprocess import Popen
 from time import perf_counter
 
-from tqdm import tqdm
+try:
+    from tqdm import tqdm
+except ImportError:
+    raise ImportError(
+        'Python is unable to find the "tqdm" package, this package is '
+        "required to use the CLI (it's used for terminal loading bars)."
+        '\nPlease verify its installation, "pip install tqdm", and try again.'
+    )
 
-__version__ = "1.3.2"
+__version__ = "1.3.3"
 LOGGER = logging.getLogger(__name__)
 
 
