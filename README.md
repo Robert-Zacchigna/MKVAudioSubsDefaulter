@@ -165,7 +165,8 @@ specify how big the processing pool should be. The bigger the pool, the faster m
 
 EX: `-plsz 2` creates a processing pool of 2
 
-> **NOTE:** Depending on your machine and size of your library, you should stay between 1-10 (Default: 1)
+> **NOTE:** Too large of a pool can have the adverse effect of slowing down the processing. Thus, depending on your
+> machine and size of your library, it is recommended stay between 1-5 (Default: 1).
 
 ### Verbosity
 
