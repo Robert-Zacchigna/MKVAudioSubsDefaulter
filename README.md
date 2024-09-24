@@ -206,14 +206,14 @@ style of running tasks. There are tons of [FOSS](https://en.wikipedia.org/wiki/F
 facilitate this, they all have their pros and cons (I'll let you decide which is the best for you).
 
 These tools offer you greater control on how you would like to process your media files (or anything else for that matter).
-The main advantage is to great a DAG with logic to only process new media files added your library and not reprocess those
-that have already been processed.
+The main advantage is to create a DAG with logic that only processes new media files added your library and not reprocess
+those that have already been processed.
 
 You could go even further add more logic to set different defaults depending on the specific media file. For example, if
 you like to watch certain media that you always want to consume in a specific language. There are tons of possibilities here.
 
-Here are few that I'm aware of listed in alphabetical order: [Airflow](https://github.com/apache/airflow), [dagster](https://github.com/dagster-io/dagster), [flyte](https://github.com/flyteorg/flyte), [luigi](https://github.com/spotify/luigi),
-[mage-ai](https://github.com/mage-ai/mage-ai), [Prefect](https://github.com/PrefectHQ/prefect).
+Here are few FOSS applications (that I'm aware of) listed in alphabetical order: [Airflow](https://github.com/apache/airflow), [dagster](https://github.com/dagster-io/dagster),
+[flyte](https://github.com/flyteorg/flyte), [luigi](https://github.com/spotify/luigi), [mage-ai](https://github.com/mage-ai/mage-ai), [Prefect](https://github.com/PrefectHQ/prefect).
 
 ## CLI Parameters
 
@@ -270,8 +270,14 @@ CLI help output: `python MKVAudioSubsDefaulter.py -h `
 
 ## Issues
 
-If you have any issues with the cli: please open an issue about what happened, what you expect should have happened and
-include all relevant log output. This should ensure a quick and speedy debugging process and issue remediation.
+If you have any issues with the cli, please do the following:
+
+* Open an [Issue](https://github.com/Robert-Zacchigna/MKVAudioSubsDefaulter/issues/new?assignees=&labels=&projects=&template=bug_report.md&title=)
+  * Describe what happened.
+  * Describe what you expected to happen.
+  * Include any and all relevant log output.
+
+This should ensure a quick/speedy debugging process and issue remediation.
 
 ## Suggestions
 
@@ -314,4 +320,9 @@ made to the cli in a clear and concise manner.
    * Open a pull request on **MKVAudioSubsDefaulter** and put your fork as the source of your changes
 
 
-5. Thank you for your contribution to **MKVAudioSubsDefaulter**!
+5. Wait for review approval
+   * Once you have created your PR, I will do my best to review it as soon as possible
+   > NOTE: I am only one person, so please have patience if I don't get to the PR right away. Thank you.
+
+
+6. Thank you for your contribution to **MKVAudioSubsDefaulter**!
