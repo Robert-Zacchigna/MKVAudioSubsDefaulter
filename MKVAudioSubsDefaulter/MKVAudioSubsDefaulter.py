@@ -690,7 +690,7 @@ def cmd_parse_args() -> argparse.Namespace:
     )
 
     # Check for valid use of -v/--verbose
-    if args.verbose and not (args.file or args.library):
+    if not args.language_codes and (args.verbose and not (args.file or args.library)):
         raise parser.error("'-v/--verbose' can only be used with -f/--file or -lib/--library")
 
     return args
