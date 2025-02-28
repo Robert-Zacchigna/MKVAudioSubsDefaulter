@@ -389,7 +389,7 @@ class MKVAudioSubsDefaulter(object):
                     os.path.join(os.path.dirname(__file__), media_file),
                 ] + mkv_cmds
 
-                LOGGER.debug(f'Constructed CMD: {" ".join(full_cmd)}')
+                LOGGER.debug(f"Constructed CMD: {' '.join(full_cmd)}")
 
                 if not self.dry_run:
                     process = Popen(full_cmd, shell=True, stdout=PIPE, stderr=PIPE)
