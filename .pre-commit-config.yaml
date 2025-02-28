@@ -31,7 +31,6 @@ repos:
       - id: mixed-line-ending
         args: ['--fix=auto']
       - id: trailing-whitespace
-      - id: requirements-txt-fixer
 #  - repo: https://github.com/szebenyib/pre-commit-pytest
 #    rev: 051fea31dbabf063ab38428c34a92c76d1abd5dc
 #    hooks:
