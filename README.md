@@ -1,6 +1,6 @@
 # MKVAudioSubsDefaulter
 
-[![GitHub Release](https://img.shields.io/github/v/release/Robert-Zacchigna/MKVAudioSubsDefaulter)](https://github.com/Robert-Zacchigna/MKVAudioSubsDefaulter/releases) ![GitHub License](https://img.shields.io/github/license/Robert-Zacchigna/MKVAudioSubsDefaulter%20) ![GitHub Pipenv locked Python version](https://img.shields.io/badge/Python->=3.9-blue) ![GitHub commits since latest release](https://img.shields.io/github/commits-since/Robert-Zacchigna/MKVAudioSubsDefaulter/latest)
+[![GitHub Release](https://img.shields.io/github/v/release/Robert-Zacchigna/MKVAudioSubsDefaulter)](https://github.com/Robert-Zacchigna/MKVAudioSubsDefaulter/releases) ![GitHub License](https://img.shields.io/github/license/Robert-Zacchigna/MKVAudioSubsDefaulter%20) ![GitHub Pipenv locked Python version](https://img.shields.io/badge/python->=3.9-blue) ![GitHub commits since latest release](https://img.shields.io/github/commits-since/Robert-Zacchigna/MKVAudioSubsDefaulter/latest)
 ![GitHub Issues or Pull Requests](https://img.shields.io/github/issues/Robert-Zacchigna/MKVAudioSubsDefaulter) ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/Robert-Zacchigna/MKVAudioSubsDefaulter/total) [![GitHub Downloads (all assets, latest release)](https://img.shields.io/github/downloads/Robert-Zacchigna/MKVAudioSubsDefaulter/latest/total)](https://github.com/Robert-Zacchigna/MKVAudioSubsDefaulter/releases/latest)
 
 Simple multi-processing python cli to set the default audio and/or subtitles of a single matroska (.mkv) file or a
@@ -12,7 +12,8 @@ the file.
 Matroska media files have the unique makeup of being able to edit parts of the metadata of the file (like the default
 tracks) _without_ having to remux the whole file (which this cli aims to make as easy as possible).
 
-> **NOTE:** To be extra clear, this cli only works on `.mkv` files and will filter out all other file types.
+> [!NOTE]
+> To be extra clear, this cli only works on `.mkv` files and will filter out all other file types.
 
 ![](https://github.com/Robert-Zacchigna/MKVAudioSubsDefaulter/blob/main/example.gif)
 
@@ -97,7 +98,8 @@ It is HIGHLY recommended to use the `-dr, --dr-run` arg when first using the cli
 to make. This arg will let the cli know to run through the file(s) BUT MAKE NO CHANGES TO THE FILE(S). It will output an
 estimate change count of how many files WOULD HAVE BEEN changed by the cli if it was not a dry run.
 
-> **NOTE:** It is better to try the cli on a smaller subset of files from your library FIRST and then move onto the full library
+> [!NOTE]
+> It is better to try the cli on a smaller subset of files from your library FIRST and then move onto the full library
 > of files after you are confident in the changes it will make.
 
 ### Language Codes (Audio and Subtitles)
@@ -106,7 +108,8 @@ Language codes are the codes in the track metadata that specify what language a 
 
 You can list out all valid language codes using language code cli arg: `-lc, --language-codes`
 
-> **NOTE:** The language code metadata is the basis of how this cli functions. Without language codes in the track
+> [!NOTE]
+> The language code metadata is the basis of how this cli functions. Without language codes in the track
 > metadata this cli will not be able to function. Thus, you (the user) are dependent on the creator of the media file
 > and/or tracks for proper track labeling.
 >
@@ -124,7 +127,8 @@ From there you can choose to change the default audio (`-a, --audio`) and/or sub
 ### Default Method: Strict vs. Lazy
 
 The default methodologies for changing the track defaults is as follows (`-dm, --default-method`):
-> **NOTE:** This only applies if you are trying to change **audio** AND **subtitles** at the SAME TIME
+> [!NOTE]
+> This only applies if you are trying to change **audio** AND **subtitles** at the SAME TIME
 
 * **"Strict"** (default): The specified NEW media file language tracks for BOTH the `audio`
 and `subtitle` tracks must exist in the track list (if ONE is missing, then no changes made to file).
@@ -144,7 +148,8 @@ filter when searching through a media library for specific media files to apply 
 **For example**, this query `(The|Good|Knight)`, will only pick out media files that have names that start with either
 "The", "Good", or "Knight" (all other names will be ignored).
 
-> **NOTE:** This is a very simple example but any valid regex will work. If you want to play around with python regex,
+> [!NOTE]
+> This is a very simple example but any valid regex will work. If you want to play around with python regex,
 > I've found this site to be helpful when developing regex query strings: [Pythex](https://pythex.org/)
 
 ### Depth
@@ -154,7 +159,8 @@ Meaning if you have a root directory _Movies_ but each movie is in its own folde
 `--depth 1` will instruct the cli to additionally search (it will still search for media files at the root level),
 at a maximum, one directory deeper for media files.
 
-> **NOTE:** There is currently **no upper max limit** of how many directories deep to search. You can put 1000 if you really
+> [!NOTE]
+> There is currently **no upper max limit** of how many directories deep to search. You can put 1000 if you really
 > wanted to, but it would take a considerable amount of time to complete the search through all of them (if it were
 > really 1000 directories deep).
 
@@ -165,7 +171,8 @@ specify how big the processing pool should be. The bigger the pool, the faster m
 
 EX: `-plsz 2` creates a processing pool of 2
 
-> **NOTE:** Too large of a pool can have the adverse effect of slowing down the processing. Thus, depending on your
+> [!NOTE]
+> Too large of a pool can have the adverse effect of slowing down the processing. Thus, depending on your
 > machine and size of your library, it is recommended stay between 1-5 (Default: 1).
 
 ### Verbosity
@@ -322,7 +329,8 @@ made to the cli in a clear and concise manner.
 
 5. Wait for review approval
    * Once you have created your PR, I will do my best to review it as soon as possible
-   > NOTE: I am only one person, so please have patience if I don't get to the PR right away. Thank you.
+   > [!NOTE]
+   > I am only one person, so please have patience if I don't get to the PR right away. Thank you.
 
 
 6. Thank you for your contribution to **MKVAudioSubsDefaulter**!
