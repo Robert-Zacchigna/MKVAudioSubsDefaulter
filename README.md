@@ -329,8 +329,8 @@ made to the cli in a clear and concise manner.
 
 5. Wait for review approval
    * Once you have created your PR, I will do my best to review it as soon as possible
-   > [!NOTE]
-   > I am only one person, so please have patience if I don't get to the PR right away. Thank you.
+> [!NOTE]
+> I am only one person, so please have patience if I don't get to the PR right away. Thank you.
 
 
 6. Thank you for your contribution to **MKVAudioSubsDefaulter**!
