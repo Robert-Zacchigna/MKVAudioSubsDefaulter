@@ -1,6 +1,6 @@
 [project]
 name = "mkvaudiosubsdefaulter"
-version = "1.3.4"
+version = "1.3.5"
 description = "Simple multi-processing python cli to set the default audio and/or subtitles of matroska (.mkv) files WITHOUT having to remux the file"
 authors = [
     {name = "Robert-Zacchigna"}
