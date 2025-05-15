@@ -190,7 +190,7 @@ class MKVAudioSubsDefaulter(object):
         if sys.platform == "win32":
             process = Popen([mkvmerge_path, "-J", file_path], shell=True, stdout=PIPE, stderr=PIPE)
             output, _ = process.communicate()
-        elif sys.platform == "linux":
+        else:
             process = subproc_run([mkvmerge_path, "-J", file_path], capture_output=True, check=True)
             output, _ = process.stdout, process.stderr
 
@@ -402,7 +402,7 @@ class MKVAudioSubsDefaulter(object):
                     if sys.platform == "win32":
                         process = Popen(full_cmd, shell=True, stdout=PIPE, stderr=PIPE)
                         output, _ = process.communicate()
-                    elif sys.platform == "linux":
+                    else:
                         process = subproc_run(full_cmd, capture_output=True, check=True)
                         output, _ = process.stdout, process.stderr
 
