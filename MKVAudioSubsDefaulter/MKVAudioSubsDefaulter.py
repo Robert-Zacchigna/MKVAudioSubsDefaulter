@@ -8,6 +8,7 @@ from multiprocessing import Pool
 from pathlib import Path
 from subprocess import PIPE
 from subprocess import Popen
+from subprocess import run as subproc_run
 from time import perf_counter
 
 try:
@@ -185,8 +186,13 @@ class MKVAudioSubsDefaulter(object):
             "mkvmerge" if not self.mkvmerge_location else Path(self.mkvmerge_location)
         )
 
-        process = Popen([mkvmerge_path, "-J", file_path], shell=True, stdout=PIPE, stderr=PIPE)
-        output, errors = process.communicate()
+        # Windows and linux handle subporcess cmds differently, this should ensure each system performs the same
+        if sys.platform == "win32":
+            process = Popen([mkvmerge_path, "-J", file_path], shell=True, stdout=PIPE, stderr=PIPE)
+            output, _ = process.communicate()
+        elif sys.platform == "linux":
+            process = subproc_run([mkvmerge_path, "-J", file_path], capture_output=True, check=True)
+            output, _ = process.stdout, process.stderr
 
         if process.returncode == 0:
             media_tracks_info = json.loads(output.decode("utf-8"))["tracks"]
@@ -392,8 +398,13 @@ class MKVAudioSubsDefaulter(object):
                 LOGGER.debug(f"Constructed CMD: {' '.join(full_cmd)}")
 
                 if not self.dry_run:
-                    process = Popen(full_cmd, shell=True, stdout=PIPE, stderr=PIPE)
-                    output, errors = process.communicate()
+                    # Windows and linux handle subporcess cmds differently, this should ensure each system performs the same
+                    if sys.platform == "win32":
+                        process = Popen(full_cmd, shell=True, stdout=PIPE, stderr=PIPE)
+                        output, _ = process.communicate()
+                    elif sys.platform == "linux":
+                        process = subproc_run(full_cmd, capture_output=True, check=True)
+                        output, _ = process.stdout, process.stderr
 
                     if process.returncode != 0:
                         try:
