@@ -1,7 +1,30 @@
-# MKVAudioSubsDefaulter
+<div align="center">
+  <h1 style="font-size: 3em; margin-bottom: 0.1em;">MKVAudioSubsDefaulter</h1>
+</div>
 
-[![GitHub Release](https://img.shields.io/github/v/release/Robert-Zacchigna/MKVAudioSubsDefaulter)](https://github.com/Robert-Zacchigna/MKVAudioSubsDefaulter/releases) ![GitHub License](https://img.shields.io/github/license/Robert-Zacchigna/MKVAudioSubsDefaulter%20) ![GitHub Pipenv locked Python version](https://img.shields.io/badge/python->=3.9-blue) ![GitHub commits since latest release](https://img.shields.io/github/commits-since/Robert-Zacchigna/MKVAudioSubsDefaulter/latest)
-![GitHub Issues or Pull Requests](https://img.shields.io/github/issues/Robert-Zacchigna/MKVAudioSubsDefaulter) ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/Robert-Zacchigna/MKVAudioSubsDefaulter/total) [![GitHub Downloads (all assets, latest release)](https://img.shields.io/github/downloads/Robert-Zacchigna/MKVAudioSubsDefaulter/latest/total)](https://github.com/Robert-Zacchigna/MKVAudioSubsDefaulter/releases/latest)
+<p align="center">
+    <a href="https://github.com/Robert-Zacchigna/MKVAudioSubsDefaulter/releases">
+        <img class="shield" src="https://img.shields.io/github/v/release/Robert-Zacchigna/MKVAudioSubsDefaulter" alt="GitHub Release">
+    </a>
+    <a href="https://github.com/Robert-Zacchigna/MKVAudioSubsDefaulter/blob/main/LICENSE">
+            <img class="shield" src="https://img.shields.io/github/license/Robert-Zacchigna/MKVAudioSubsDefaulter%20" alt="GitHub License">
+    </a>
+    <a href="https://www.python.org/downloads/">
+        <img class="shield" src="https://img.shields.io/badge/python->=3.9-blue" alt="GitHub Pipenv locked Python version">
+    </a>
+    <a href="https://github.com/Robert-Zacchigna/MKVAudioSubsDefaulter/commits/main">
+        <img class="shield" src="https://img.shields.io/github/commits-since/Robert-Zacchigna/MKVAudioSubsDefaulter/latest" alt="GitHub commits since latest release">
+    </a>
+    <a href="https://github.com/Robert-Zacchigna/MKVAudioSubsDefaulter/issues">
+        <img class="shield" src="https://img.shields.io/github/issues/Robert-Zacchigna/MKVAudioSubsDefaulter" alt="GitHub Issues or Pull Requests">
+    </a>
+    <a href="https://github.com/Robert-Zacchigna/MKVAudioSubsDefaulter/releases">
+        <img class="shield" src="https://img.shields.io/github/downloads/Robert-Zacchigna/MKVAudioSubsDefaulter/total" alt="GitHub Downloads (all assets, all releases)">
+    </a>
+    <a href="https://github.com/Robert-Zacchigna/MKVAudioSubsDefaulter/releases/latest">
+        <img class="shield" src="https://img.shields.io/github/downloads/Robert-Zacchigna/MKVAudioSubsDefaulter/latest/total" alt="GitHub Downloads (all assets, latest release)">
+    </a>
+</p>
 
 Simple multi-processing python cli to set the default audio and/or subtitles of a single matroska (.mkv) file or a
 library of files WITHOUT having to remux the file.
