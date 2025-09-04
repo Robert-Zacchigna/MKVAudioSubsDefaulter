@@ -180,6 +180,9 @@ class MKVAudioSubsDefaulter(object):
                 "text_subtitles": (
                     track_prop.get("text_subtitles") if track["type"] == "subtitles" else None
                 ),
+                "sample_freq": track_prop.get("audio_sampling_frequency", 0)
+                if track["type"] == "audio"
+                else None,
             }
 
         mkvmerge_path = os.path.join(
@@ -277,6 +280,7 @@ class MKVAudioSubsDefaulter(object):
         else:
             mkv_cmds = []
             no_changes = False
+            best_audio_sample_freq = 0
 
             for code, track_type in [
                 (self.audio_lang_code, "audio"),
@@ -290,29 +294,66 @@ class MKVAudioSubsDefaulter(object):
 
                     # --set flag-default=<1_for_ENABLE_0_for_DISABLE>
                     for track_num, track in tracks_info.get(track_type, {}).items():
-                        if track["default"]:
+                        is_default = track["default"]
+                        track_language = track["language"]
+
+                        if is_default:
                             current_default_track_num = track_num
 
-                            if code not in [track["language"], "off"]:
-                                track_num = (
-                                    (current_default_track_num - len(tracks_info.get("audio", {})))
+                            if code not in [track_language, "off"]:
+                                adjusted_track_num = (
+                                    (track_num - len(tracks_info.get("audio", {})))
                                     if track_type == "subtitles"
-                                    else current_default_track_num
+                                    else track_num
                                 )
 
-                                mkv_cmds += [
-                                    "--edit",
-                                    f"track:{track_type[0]}{track_num}",
-                                    "--set",
-                                    "flag-default=0",
-                                ]
-                            LOGGER.debug(f"Current Default - File: {media_file}, Track: {track}")
-                        elif track_type == "subtitles" and current_default_track_num is None:
+                                mkv_cmds.extend(
+                                    [
+                                        "--edit",
+                                        f"track:{track_type[0]}{adjusted_track_num}",
+                                        "--set",
+                                        "flag-default=0",
+                                    ]
+                                )
+
+                            LOGGER.debug(
+                                f"Current Default - File: {media_file}, Type: {track_type}, Track: {track}"
+                            )
+
+                        if track_type == "subtitles" and current_default_track_num is None:
                             current_default_track_num = "off"
 
-                        if track["language"] == code:
-                            new_default_track_num = track_num
-                            LOGGER.debug(f"New Default - File: {media_file}, Track: {track}")
+                        if track_language == code:
+                            if track_type == "audio":
+                                curr_sample_freq = track.get("sample_freq", 0)
+
+                                if curr_sample_freq > best_audio_sample_freq:
+                                    if best_audio_sample_freq > 0:
+                                        LOGGER.debug(
+                                            f'Better quality {track_type} track found for: "{media_file}"'
+                                        )
+
+                                    best_audio_sample_freq = curr_sample_freq
+                                    new_default_track_num = track_num
+
+                                    LOGGER.debug(
+                                        f"New Default - File: {media_file}, Type: {track_type}, Track: {track}"
+                                    )
+                                elif is_default:
+                                    mkv_cmds.extend(
+                                        [
+                                            "--edit",
+                                            f"track:{track_type[0]}{track_num}",
+                                            "--set",
+                                            "flag-default=0",
+                                        ]
+                                    )
+                            else:  # subtitles
+                                new_default_track_num = track_num
+                                LOGGER.debug(
+                                    f"New Default - File: {media_file}, Type: {track_type}, Track: {track}"
+                                )
+
                         elif current_default_track_num == code == "off":
                             new_default_track_num = code
 
@@ -332,17 +373,20 @@ class MKVAudioSubsDefaulter(object):
                                     LOGGER.error(
                                         f'"{track_type.capitalize()}" language ("{code}") track does not exist in media file: "{media_file}"'
                                     )
+
                                     miss_track_count += 1
                                     no_changes = True
                                 else:
                                     LOGGER.info(
                                         f'"{track_type.capitalize()}" language ("{code}") track exists in media file: "{media_file}"'
                                     )
+
                                     current_default_track_num -= (
                                         len(tracks_info.get("audio", {}))
                                         if track_type == "subtitles"
                                         else 0
                                     )
+
                                     mkv_cmds += [
                                         "--edit",
                                         f"track:{track_type[0]}{current_default_track_num}",
@@ -376,6 +420,7 @@ class MKVAudioSubsDefaulter(object):
                                 if track_type == "subtitles"
                                 else 0
                             )
+
                             mkv_cmds += [
                                 "--edit",
                                 f"track:{track_type[0]}{new_default_track_num}",
