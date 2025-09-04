@@ -605,7 +605,11 @@ def cmd_parse_args() -> argparse.Namespace:
         "-a",
         "--audio",
         type=str,
-        help="Desired audio language (refer to language codes (CANNOT be 'OFF'): -lc, --language-codes)",
+        help=(
+            "Desired audio language (refer to language codes (CANNOT be 'OFF'): -lc, --language-codes)\n\n"
+            "If multiple audio tracks with the same language code exist in the media file (e.g. two eng tracks), \n"
+            "the track with the highest quality will be selected based on sample frequency (ex: 48000Hz > 44100Hz)."
+        ),
     )
 
     parser.add_argument(
