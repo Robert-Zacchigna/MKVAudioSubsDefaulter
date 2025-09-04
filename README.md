@@ -5,7 +5,7 @@
 <p align="center">
     <a href="https://github.com/Robert-Zacchigna/MKVAudioSubsDefaulter/releases"><img class="shield" src="https://img.shields.io/github/v/release/Robert-Zacchigna/MKVAudioSubsDefaulter" alt="GitHub Release"></a>
     <a href="https://github.com/Robert-Zacchigna/MKVAudioSubsDefaulter/blob/main/LICENSE"><img class="shield" src="https://img.shields.io/github/license/Robert-Zacchigna/MKVAudioSubsDefaulter%20" alt="GitHub License"></a>
-    <a href="https://www.python.org/downloads/"><img class="shield" src="https://img.shields.io/badge/python->=3.9-blue" alt="GitHub Pipenv locked Python version"></a>
+    <a href="https://www.python.org/downloads/"><img class="shield" src="https://img.shields.io/badge/python->=3.10-blue" alt="GitHub Pipenv locked Python version"></a>
     <a href="https://github.com/Robert-Zacchigna/MKVAudioSubsDefaulter/commits/main"><img class="shield" src="https://img.shields.io/github/commits-since/Robert-Zacchigna/MKVAudioSubsDefaulter/latest" alt="GitHub commits since latest release"></a>
     <a href="https://github.com/Robert-Zacchigna/MKVAudioSubsDefaulter/issues"><img class="shield" src="https://img.shields.io/github/issues/Robert-Zacchigna/MKVAudioSubsDefaulter" alt="GitHub Issues or Pull Requests"></a>
     <a href="https://github.com/Robert-Zacchigna/MKVAudioSubsDefaulter/releases"><img class="shield" src="https://img.shields.io/github/downloads/Robert-Zacchigna/MKVAudioSubsDefaulter/total" alt="GitHub Downloads (all assets, all releases)"></a>
@@ -52,10 +52,10 @@ tracks) _without_ having to remux the whole file (which this cli aims to make as
 
 ## Dependencies
 
-* Python **3.9+** ([python.org](https://www.python.org/downloads/))
-  * External Python Modules
+* Python **3.10+** ([python.org](https://www.python.org/downloads/))
+  * Install project dependencies with: `make init`
+  * <ins>External Python Modules</ins>
     * [tqdm](https://github.com/tqdm/tqdm) (for the progress bar)
-      * `pip install -r requirements.txt`
 * [MKVToolNix](https://mkvtoolnix.download/downloads.html) (Download for your OS)
   * You specifically need the following binaries from `MKVToolNix` added to your system `path`
     * [mkvmerge](https://mkvtoolnix.download/doc/mkvmerge.html)
@@ -65,8 +65,8 @@ tracks) _without_ having to remux the whole file (which this cli aims to make as
 
 Future possible improvements and/or additions (in no particular order):
 
-- [ ] Add Unit Tests
-- [ ] Rework cli to be a bit more modernized using [rich-click](https://github.com/ewels/rich-click)
+- [x] (**COMPLETED:** `09/04/2025`) Add Unit Tests
+- [ ] Rework cli to be a bit more modernized (like [rich-click](https://github.com/ewels/rich-click))
 - [ ] Output media file statuses to log files depending on their status (see top of `change_default_tracks()`
       for statuses)
 - [x] (**COMPLETED:** `05/03/2024`) Add `-regfil, --regex-filter` arg to filter for specific media files based on a
@@ -147,6 +147,10 @@ and `subtitle` tracks must exist in the track list (if ONE is missing, then no c
 tracks must exist in the track list (if BOTH are missing, then no changes made to file).
   * EX: If the audio language track is missing but NOT the subtitle track, then the audio
   stays the same and the default subtitle track is changed (and vice verse).
+
+> [!NOTE]
+> In either case, if multiple `audio` tracks with the same language code are found, the *best quality* track
+> will be set as the default (based on sample frequency).
 
 ### Regex Filtering
 
