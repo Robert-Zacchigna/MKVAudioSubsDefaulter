@@ -541,9 +541,13 @@ def _runtime_output_str(total_seconds: float) -> None:
     runtime_str = ""
 
     days = int(total_seconds // 86400)
-    hours = int(total_seconds // 3600)
-    minutes = int((total_seconds // 60) % 60)
-    seconds = round(total_seconds - minutes * 60, 2)
+    remaining_seconds = total_seconds % 86400
+
+    hours = int(remaining_seconds // 3600)
+    remaining_seconds = remaining_seconds % 3600
+
+    minutes = int(remaining_seconds // 60)
+    seconds = round(remaining_seconds % 60, 2)
 
     if days > 0:
         runtime_str += f"{days} day(s) "
@@ -552,9 +556,9 @@ def _runtime_output_str(total_seconds: float) -> None:
     if minutes > 0 or hours > 0 or days > 0:
         runtime_str += f"{minutes} min(s) "
     if seconds > 0 or minutes > 0 or hours > 0 or days > 0:
-        runtime_str += f"{seconds} sec(s) "
+        runtime_str += f"{seconds} sec(s)"
 
-    print(f"\n[*] Total Runtime: {runtime_str}[*]")
+    print(f"\n[*] Total Runtime: {runtime_str} [*]")
 
 
 def cmd_parse_args() -> argparse.Namespace:
