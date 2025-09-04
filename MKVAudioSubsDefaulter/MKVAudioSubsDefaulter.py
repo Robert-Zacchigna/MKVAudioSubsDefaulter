@@ -189,7 +189,7 @@ class MKVAudioSubsDefaulter(object):
             "mkvmerge" if not self.mkvmerge_location else Path(self.mkvmerge_location)
         )
 
-        # Windows and linux handle subporcess cmds differently, this should ensure each system performs the same
+        # Windows and linux handle subprocess cmds differently, this should ensure each system performs the same
         if sys.platform == "win32":
             process = Popen([mkvmerge_path, "-J", file_path], shell=True, stdout=PIPE, stderr=PIPE)
             output, _ = process.communicate()
@@ -698,6 +698,10 @@ def cmd_parse_args() -> argparse.Namespace:
     )
 
     args = parser.parse_args()
+
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        raise parser.error("No arguments were provided, refer to -h/--help for more info")
 
     # Check for exclusive use of -lc/--language-codes
     if args.language_codes and len(sys.argv) >= 3:
