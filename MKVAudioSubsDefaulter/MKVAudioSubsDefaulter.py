@@ -212,11 +212,11 @@ class MKVAudioSubsDefaulter(object):
             # Channel score (normalized to 0-15 range)
             # More channels is generally better
             if channels <= 2:
-                channel_score = channels * 3  # Stereo gets 6 points
+                channel_score = channels * 3  # Stereo
             elif channels <= 6:
-                channel_score = 6 + (channels - 2) * 2  # 5.1 gets 14 points
+                channel_score = 6 + (channels - 2) * 2  # 5.1
             else:
-                channel_score = 14 + (channels - 6) * 0.5  # 7.1+ gets 15+ points
+                channel_score = 14 + (channels - 6) * 0.5  # 7.1+
 
             channel_score = min(15, channel_score)
 
@@ -689,7 +689,8 @@ def cmd_parse_args() -> argparse.Namespace:
         help=(
             "Desired audio language (refer to language codes (CANNOT be 'OFF'): -lc, --language-codes)\n\n"
             "If multiple audio tracks with the same language code exist in the media file (e.g. two eng tracks),\n"
-            "the track with the highest quality will be selected based on sample frequency (ex: 48000Hz > 44100Hz)."
+            "the track with the highest quality will be selected.\n\n"
+            "Track quality is determined by: codec, channels, and audio_smapling_frequency."
         ),
     )
 
