@@ -167,6 +167,82 @@ class MKVAudioSubsDefaulter(object):
             )
         return True
 
+    @staticmethod
+    def is_better_audio_track(new_track: dict, current_best_track: dict = None) -> bool:
+        if current_best_track is None:
+            return True
+
+        # Codec quality ranking (higher = better quality)
+        codec_rankings = {
+            # Lossless codecs (highest quality)
+            "A_TRUEHD": 100,  # TrueHD (includes Atmos)
+            "A_DTS": 95,  # DTS-HD MA (lossless)
+            "A_FLAC": 90,  # FLAC
+            "A_PCM": 85,  # PCM
+            # High-quality lossy codecs
+            "A_EAC3": 70,  # E-AC3 (Dolby Digital Plus)
+            "A_AC3": 60,  # AC3 (Dolby Digital)
+            "A_OPUS": 55,  # Opus
+            "A_VORBIS": 50,  # Vorbis
+            # Standard lossy codecs
+            "A_AAC": 40,  # AAC
+            "A_MP3": 30,  # MP3
+            "A_MP2": 20,  # MP2
+        }
+
+        def calculate_track_score(track: dict) -> float:
+            """Calculate a quality score for an audio track"""
+
+            codec_id = track.get("codec_id", "") if track.get("codec_id", "") is not None else ""
+            sample_freq = (
+                track.get("audio_samp_freq", 0)
+                if track.get("audio_samp_freq", "") is not None
+                else 0
+            )
+            channels = (
+                track.get("audio_channels", 0) if track.get("audio_channels", "") is not None else 0
+            )
+
+            codec_score = codec_rankings.get(codec_id, 10)  # Base Score
+
+            # Sampling frequency score (normalized to 0-20 range)
+            # Common frequencies: 44100, 48000, 88200, 96000, 176400, 192000
+            freq_score = min(20, (sample_freq / 48000) * 10) if sample_freq > 0 else 0
+
+            # Channel score (normalized to 0-15 range)
+            # More channels is generally better
+            if channels <= 2:
+                channel_score = channels * 3  # Stereo gets 6 points
+            elif channels <= 6:
+                channel_score = 6 + (channels - 2) * 2  # 5.1 gets 14 points
+            else:
+                channel_score = 14 + (channels - 6) * 0.5  # 7.1+ gets 15+ points
+
+            channel_score = min(15, channel_score)
+
+            return codec_score + freq_score + channel_score
+
+        new_score = calculate_track_score(new_track)
+        current_score = calculate_track_score(current_best_track)
+
+        LOGGER.debug(
+            f"Audio track comparison - New: {new_score:.1f} vs Current Best: {current_score:.1f}"
+        )
+
+        LOGGER.debug(
+            f"New track - Codec: {new_track.get('codec_id')}, "
+            f"Channels: {new_track.get('audio_channels')}, "
+            f"Freq: {new_track.get('audio_samp_freq')}Hz"
+        )
+
+        LOGGER.debug(
+            f"Current best - Codec: {current_best_track.get('codec_id')}, "
+            f"Channels: {current_best_track.get('audio_channels')}, "
+            f"Freq: {current_best_track.get('audio_samp_freq')}Hz"
+        )
+
+        return new_score > current_score
+
     def process_media_file_info(self, file_path: str) -> [str, str]:
         def extract_track_info(track: dict) -> dict:
             track_prop = track["properties"]
@@ -180,7 +256,11 @@ class MKVAudioSubsDefaulter(object):
                 "text_subtitles": (
                     track_prop.get("text_subtitles") if track["type"] == "subtitles" else None
                 ),
-                "sample_freq": track_prop.get("audio_sampling_frequency", 0)
+                "codec_id": track_prop.get("codec_id", 0),
+                "audio_channels": track_prop.get("audio_channels", 0)
+                if track["type"] == "audio"
+                else None,
+                "audio_samp_freq": track_prop.get("audio_sampling_frequency", 0)
                 if track["type"] == "audio"
                 else None,
             }
@@ -280,7 +360,6 @@ class MKVAudioSubsDefaulter(object):
         else:
             mkv_cmds = []
             no_changes = False
-            best_audio_sample_freq = 0
 
             for code, track_type in [
                 (self.audio_lang_code, "audio"),
@@ -291,6 +370,7 @@ class MKVAudioSubsDefaulter(object):
                 if code is not None and self.verify_language_code(code, track_type):
                     current_default_track_num = None
                     new_default_track_num = None
+                    best_track_info = None
 
                     # --set flag-default=<1_for_ENABLE_0_for_DISABLE>
                     for track_num, track in tracks_info.get(track_type, {}).items():
@@ -325,19 +405,20 @@ class MKVAudioSubsDefaulter(object):
 
                         if track_language == code:
                             if track_type == "audio":
-                                curr_sample_freq = track.get("sample_freq", 0)
-
-                                if curr_sample_freq > best_audio_sample_freq:
-                                    if best_audio_sample_freq > 0:
+                                if self.is_better_audio_track(track, best_track_info):
+                                    if best_track_info is not None:
                                         LOGGER.debug(
                                             f'Better quality {track_type} track found for: "{media_file}"'
                                         )
 
-                                    best_audio_sample_freq = curr_sample_freq
+                                    best_track_info = track
                                     new_default_track_num = track_num
 
                                     LOGGER.debug(
-                                        f"New Default - File: {media_file}, Type: {track_type}, Track: {track}"
+                                        f"New Best - File: {media_file}, Type: {track_type}, "
+                                        f"Track ID: {track_num}, Codec: {track.get('codec_id')}, "
+                                        f"Channels: {track.get('audio_channels')}, "
+                                        f"Freq: {track.get('audio_samp_freq')}Hz"
                                     )
                                 elif is_default:
                                     mkv_cmds.extend(

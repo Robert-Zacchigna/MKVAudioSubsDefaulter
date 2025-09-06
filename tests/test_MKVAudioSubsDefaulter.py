@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import re
+import shutil
 import tempfile
 from unittest.mock import Mock
 from unittest.mock import mock_open
@@ -26,7 +27,7 @@ class TestMKVAudioSubsDefaulter:
 
     @pytest.fixture
     def sample_media_info(self):
-        """Sample media file track information for testing."""
+        """Sample media file track information for testing with updated field names."""
         return {
             "audio": {
                 0: {
@@ -36,7 +37,9 @@ class TestMKVAudioSubsDefaulter:
                     "enabled": True,
                     "forced": False,
                     "text_subtitles": None,
-                    "sample_freq": 48000,
+                    "codec_id": "A_AC3",
+                    "audio_channels": 6,
+                    "audio_samp_freq": 48000,
                 },
                 1: {
                     "language": "jpn",
@@ -45,7 +48,9 @@ class TestMKVAudioSubsDefaulter:
                     "enabled": True,
                     "forced": False,
                     "text_subtitles": None,
-                    "sample_freq": 44100,
+                    "codec_id": "A_DTS",
+                    "audio_channels": 8,
+                    "audio_samp_freq": 48000,
                 },
             },
             "subtitles": {
@@ -56,7 +61,9 @@ class TestMKVAudioSubsDefaulter:
                     "enabled": True,
                     "forced": False,
                     "text_subtitles": True,
-                    "sample_freq": None,
+                    "codec_id": None,
+                    "audio_channels": None,
+                    "audio_samp_freq": None,
                 },
                 3: {
                     "language": "jpn",
@@ -65,14 +72,16 @@ class TestMKVAudioSubsDefaulter:
                     "enabled": True,
                     "forced": False,
                     "text_subtitles": True,
-                    "sample_freq": None,
+                    "codec_id": None,
+                    "audio_channels": None,
+                    "audio_samp_freq": None,
                 },
             },
         }
 
     @pytest.fixture
     def sample_mkvmerge_output(self):
-        """Sample JSON output from mkvmerge command."""
+        """Sample JSON output from mkvmerge command with updated audio properties."""
         return {
             "tracks": [
                 {
@@ -84,6 +93,8 @@ class TestMKVAudioSubsDefaulter:
                         "default_track": True,
                         "enabled_track": True,
                         "forced_track": False,
+                        "codec_id": "A_AC3",
+                        "audio_channels": 6,
                         "audio_sampling_frequency": 48000,
                     },
                 },
@@ -96,7 +107,9 @@ class TestMKVAudioSubsDefaulter:
                         "default_track": False,
                         "enabled_track": True,
                         "forced_track": False,
-                        "audio_sampling_frequency": 44100,
+                        "codec_id": "A_DTS",
+                        "audio_channels": 8,
+                        "audio_sampling_frequency": 48000,
                     },
                 },
                 {
@@ -310,7 +323,9 @@ class TestMKVAudioSubsDefaulter:
                 audio_track = tracks_info["audio"][0]
                 assert audio_track["language"] == "eng"
                 assert audio_track["default"] is True
-                assert audio_track["sample_freq"] == 48000
+                assert audio_track["audio_samp_freq"] == 48000
+                assert audio_track["codec_id"] == "A_AC3"
+                assert audio_track["audio_channels"] == 6
 
     def test_process_media_file_info_success_windows(self, basic_defaulter, sample_mkvmerge_output):
         """Test processing media file info on Windows with successful result."""
@@ -373,84 +388,429 @@ class TestMKVAudioSubsDefaulter:
 
                 assert "Invalid JSON output" in str(exc_info.value)
 
-    def test_get_media_files_info_single_file_no_multiprocessing(self, basic_defaulter):
-        """Test getting media files info from single file without multiprocessing."""
-        basic_defaulter.file_or_library_path = "/test/movie.mkv"
-        basic_defaulter.pool_size = 1
 
-        with patch("os.path.isdir", return_value=False):
-            # Simulate what happens in get_media_files_info without multiprocessing
-            media_file_paths = []
+class TestTqdmImport:
+    """Test suite for tqdm import error handling."""
 
-            if basic_defaulter.file_or_library_path.endswith(basic_defaulter.file_extensions):
-                media_file_paths = [basic_defaulter.file_or_library_path]
+    def test_tqdm_import_success(self):
+        """Test that tqdm imports successfully when available."""
+        try:
+            from tqdm import tqdm
 
-            assert len(media_file_paths) == 1
-            assert media_file_paths[0] == "/test/movie.mkv"
+            assert callable(tqdm), "tqdm should be callable"
+        except ImportError:
+            pytest.skip("tqdm not installed, cannot test successful import")
 
-            fake_pool_results = [("/test/movie.mkv", {"audio": {}, "subtitles": {}})]
+    def test_tqdm_import_failure_raises_custom_error(self):
+        """Test that a custom ImportError is raised when tqdm is not available."""
+        with patch.dict("sys.modules", {"tqdm": None}):
+            with pytest.raises(ImportError, match='Python is unable to find the "tqdm" package'):
+                try:
+                    from tqdm import tqdm  # noqa: F401
 
-            media_info = {}
-            for file_path, tracks_info in fake_pool_results:
-                media_info[file_path] = tracks_info
+                except ImportError:
+                    raise ImportError(
+                        'Python is unable to find the "tqdm" package, this package is '
+                        "required to use the CLI (it's used for terminal loading bars)."
+                        '\nPlease verify its installation, "pip install tqdm", and try again.'
+                    )
 
-            assert len(media_info) == 1
-            assert "/test/movie.mkv" in media_info
-            assert media_info["/test/movie.mkv"]["audio"] == {}
-            assert media_info["/test/movie.mkv"]["subtitles"] == {}
+    def test_simulate_missing_tqdm_module_import(self):
+        """Test simulation of the actual module import behavior."""
 
-    def test_process_media_file_tracks_non_mkv_no_multiprocessing(self, basic_defaulter):
-        """Test processing media file tracks with non-MKV file without multiprocessing."""
-        with patch.object(basic_defaulter, "verify_language_code", return_value=True):
-            with patch.object(basic_defaulter, "set_log_level"):
-                media_file_info = ("/test/movie.mp4", {"audio": {}, "subtitles": {}})
+        def simulate_tqdm_import():
+            try:
+                from tqdm import tqdm
 
-                result = basic_defaulter.process_media_file_tracks(media_file_info)
+                return tqdm
+            except ImportError:
+                raise ImportError(
+                    'Python is unable to find the "tqdm" package, this package is '
+                    "required to use the CLI (it's used for terminal loading bars)."
+                    '\nPlease verify its installation, "pip install tqdm", and try again.'
+                )
 
-                assert result[0] == (".mp4", 1)  # File extension and count
-                assert result[1] == 0  # successful_count
-                assert result[2] == 0  # estimated_successful
-                assert result[3] == 0  # unchanged_count
-                assert result[4] == 0  # miss_track_count
-                assert result[5] == 1  # invalid_count (non-MKV file)
-                assert result[6] == 0  # failed_count
+        try:
+            result = simulate_tqdm_import()
+            assert callable(result), "Should return callable tqdm when available"
+        except ImportError as e:
+            error_msg = str(e)
+            assert 'Python is unable to find the "tqdm" package' in error_msg
+            assert "pip install tqdm" in error_msg
 
-    def test_process_media_file_tracks_no_changes_needed(self, basic_defaulter):
-        """Test processing media file tracks when no changes are needed."""
-        with patch.object(basic_defaulter, "verify_language_code", return_value=True):
-            with patch.object(basic_defaulter, "set_log_level"):
-                # Media file where English is already default for both audio and subtitle
-                tracks_info = {
-                    "audio": {0: {"language": "eng", "default": True, "sample_freq": 48000}},
-                    "subtitles": {1: {"language": "eng", "default": True}},
-                }
+    def test_import_error_type(self):
+        """Test that the correct exception type is raised."""
+        with pytest.raises(ImportError):
+            raise ImportError(
+                'Python is unable to find the "tqdm" package, this package is '
+                "required to use the CLI (it's used for terminal loading bars)."
+                '\nPlease verify its installation, "pip install tqdm", and try again.'
+            )
 
-                media_file_info = ("/test/movie.mkv", tracks_info)
 
-                result = basic_defaulter.process_media_file_tracks(media_file_info)
+class TestListDirectories:
+    @pytest.fixture
+    def basic_defaulter(self):
+        """Create a basic MKVAudioSubsDefaulter instance for testing."""
+        return MKVAudioSubsDefaulter(
+            file_or_library_path="/test/path", audio_lang_code="eng", subtitle_lang_code="eng"
+        )
 
-                assert result[0] == (".mkv", 1)
-                assert result[1] == 0  # successful_count
-                assert result[2] == 0  # estimated_successful
-                assert result[3] == 1  # unchanged_count (no changes needed)
-                assert result[4] == 0  # miss_track_count
-                assert result[5] == 0  # invalid_count
-                assert result[6] == 0  # failed_count
+    def setUp(self):
+        """
+        Create a temporary directory structure for testing.
+        temp_root/
+        ├── dir1/
+        │   ├── subdir1/
+        │   │   └── subsubdir1/
+        │   └── subdir2/
+        └── dir2/
+            └── subdir3/
+        """
 
-    def test_process_media_file_tracks_successful_change(self, basic_defaulter):
-        """Test processing media file tracks with successful changes."""
+        self.test_root = "temp_test_dir"
 
+        os.makedirs(os.path.join(self.test_root, "dir1", "subdir1", "subsubdir1"))
+        os.makedirs(os.path.join(self.test_root, "dir1", "subdir2"))
+        os.makedirs(os.path.join(self.test_root, "dir2", "subdir3"))
+
+        with open(os.path.join(self.test_root, "file.txt"), "w") as f:
+            f.write("test file")
+
+        with open(os.path.join(self.test_root, "dir1", "file1.txt"), "w") as f:
+            f.write("test file")
+
+    def tearDown(self):
+        """
+        Clean up the temporary directory structure after each test.
+        """
+        shutil.rmtree(self.test_root)
+
+    def test_full_depth(self, basic_defaulter):
+        """
+        Test listing all directories with a large depth.
+        """
+        self.setUp()
+
+        expected_dirs = [
+            self.test_root,
+            os.path.join(self.test_root, "dir1"),
+            os.path.join(self.test_root, "dir1", "subdir1"),
+            os.path.join(self.test_root, "dir1", "subdir1", "subsubdir1"),
+            os.path.join(self.test_root, "dir1", "subdir2"),
+            os.path.join(self.test_root, "dir2"),
+            os.path.join(self.test_root, "dir2", "subdir3"),
+        ]
+
+        result = sorted(basic_defaulter.list_directories(self.test_root, depth=10))
+        expected_dirs = sorted([os.path.normpath(d) for d in expected_dirs])
+
+        self.tearDown()
+
+        assert result == expected_dirs
+
+    def test_depth_limit(self, basic_defaulter):
+        """
+        Test listing directories up to a specific depth.
+        """
+        self.setUp()
+
+        expected_dirs = [
+            self.test_root,
+            os.path.join(self.test_root, "dir1"),
+            os.path.join(self.test_root, "dir1", "subdir1"),
+            os.path.join(self.test_root, "dir1", "subdir2"),
+            os.path.join(self.test_root, "dir2"),
+            os.path.join(self.test_root, "dir2", "subdir3"),
+        ]
+
+        result = sorted(basic_defaulter.list_directories(self.test_root, depth=2))
+        expected_dirs = sorted([os.path.normpath(d) for d in expected_dirs])
+
+        self.tearDown()
+
+        assert result == expected_dirs
+
+    def test_zero_depth(self, basic_defaulter):
+        """
+        Test listing only the root directory when depth is 0.
+        """
+        self.setUp()
+
+        expected_dirs = [self.test_root]
+
+        result = sorted(basic_defaulter.list_directories(self.test_root, depth=0))
+        expected_dirs = sorted([os.path.normpath(d) for d in expected_dirs])
+
+        self.tearDown()
+
+        assert result == expected_dirs
+
+    def test_empty_directory(self, basic_defaulter):
+        """
+        Test the function with an empty directory.
+        """
+        self.setUp()
+
+        empty_dir = "empty_dir"
+        os.makedirs(empty_dir)
+
+        result = basic_defaulter.list_directories(empty_dir, depth=5)
+
+        self.tearDown()
+        shutil.rmtree(empty_dir)
+
+        assert result == [empty_dir]
+
+
+class TestAudioQualityComparison:
+    """Test suite for the new audio quality comparison functionality."""
+
+    @pytest.fixture
+    def basic_defaulter(self):
+        """Create a basic MKVAudioSubsDefaulter instance for testing."""
+        return MKVAudioSubsDefaulter(
+            file_or_library_path="/test/path", audio_lang_code="eng", subtitle_lang_code="eng"
+        )
+
+    def test_is_better_audio_track_first_track(self, basic_defaulter):
+        """Test that the first track is always considered better when no current best exists."""
+        new_track = {
+            "codec_id": "A_AC3",
+            "audio_samp_freq": 48000,
+            "audio_channels": 6,
+        }
+
+        result = basic_defaulter.is_better_audio_track(new_track, None)
+        assert result is True
+
+    def test_is_better_audio_track_better_codec(self, basic_defaulter):
+        """Test that a track with better codec is preferred."""
+        current_best = {
+            "codec_id": "A_AC3",
+            "audio_samp_freq": 48000,
+            "audio_channels": 6,
+        }
+
+        new_track = {
+            "codec_id": "A_TRUEHD",  # Better codec
+            "audio_samp_freq": 48000,
+            "audio_channels": 8,
+        }
+
+        result = basic_defaulter.is_better_audio_track(new_track, current_best)
+        assert result is True
+
+    def test_is_better_audio_track_worse_codec(self, basic_defaulter):
+        """Test that a track with worse codec is not preferred."""
+        current_best = {
+            "codec_id": "A_TRUEHD",
+            "audio_samp_freq": 48000,
+            "audio_channels": 8,
+        }
+
+        new_track = {
+            "codec_id": "A_AC3",  # Worse codec
+            "audio_samp_freq": 48000,
+            "audio_channels": 6,
+        }
+
+        result = basic_defaulter.is_better_audio_track(new_track, current_best)
+        assert result is False
+
+    def test_is_better_audio_track_same_codec_more_channels(self, basic_defaulter):
+        """Test that more channels are preferred with same codec."""
+        current_best = {
+            "codec_id": "A_AC3",
+            "audio_samp_freq": 48000,
+            "audio_channels": 6,  # 5.1
+        }
+
+        new_track = {
+            "codec_id": "A_AC3",
+            "audio_samp_freq": 48000,
+            "audio_channels": 8,  # 7.1
+        }
+
+        result = basic_defaulter.is_better_audio_track(new_track, current_best)
+        assert result is True
+
+    def test_is_better_audio_track_same_codec_higher_freq(self, basic_defaulter):
+        """Test that higher sampling frequency is preferred with same codec and channels."""
+        current_best = {
+            "codec_id": "A_AC3",
+            "audio_samp_freq": 44100,
+            "audio_channels": 6,
+        }
+
+        new_track = {
+            "codec_id": "A_AC3",
+            "audio_samp_freq": 48000,  # Higher frequency
+            "audio_channels": 6,
+        }
+
+        result = basic_defaulter.is_better_audio_track(new_track, current_best)
+        assert result is True
+
+    def test_is_better_audio_track_dts_hd_ma_vs_truehd(self, basic_defaulter):
+        """Test comparison between DTS-HD MA and TrueHD."""
+        current_best = {
+            "codec_id": "A_DTS",
+            "audio_samp_freq": 48000,
+            "audio_channels": 8,
+        }
+
+        new_track = {
+            "codec_id": "A_TRUEHD",
+            "audio_samp_freq": 48000,
+            "audio_channels": 8,
+        }
+
+        # TrueHD should be preferred over DTS-HD MA
+        result = basic_defaulter.is_better_audio_track(new_track, current_best)
+        assert result is True
+
+    def test_is_better_audio_track_unknown_codec(self, basic_defaulter):
+        """Test handling of unknown codec."""
+        current_best = {
+            "codec_id": "A_AC3",
+            "audio_samp_freq": 48000,
+            "audio_channels": 6,
+        }
+
+        new_track = {
+            "codec_id": "A_UNKNOWN_CODEC",
+            "audio_samp_freq": 96000,  # Very high frequency
+            "audio_channels": 8,
+        }
+
+        # Known codec should be preferred over unknown
+        result = basic_defaulter.is_better_audio_track(new_track, current_best)
+        assert result is False
+
+    def test_is_better_audio_track_missing_properties(self, basic_defaulter):
+        """Test handling of tracks with missing properties."""
+        current_best = {
+            "codec_id": "A_AC3",
+            "audio_samp_freq": 48000,
+            "audio_channels": 6,
+        }
+
+        new_track = {
+            "codec_id": "A_TRUEHD",
+            # Missing audio_samp_freq and audio_channels
+        }
+
+        result = basic_defaulter.is_better_audio_track(new_track, current_best)
+        # Should still prefer TrueHD due to superior codec
+        assert result is True
+
+    def test_is_better_audio_track_zero_values(self, basic_defaulter):
+        """Test handling of zero values in track properties."""
+        current_best = {
+            "codec_id": "A_AC3",
+            "audio_samp_freq": 48000,
+            "audio_channels": 6,
+        }
+
+        new_track = {
+            "codec_id": "A_TRUEHD",
+            "audio_samp_freq": 0,
+            "audio_channels": 0,
+        }
+
+        result = basic_defaulter.is_better_audio_track(new_track, current_best)
+        # TrueHD should still win due to superior codec
+        assert result is True
+
+    def test_is_better_audio_track_comprehensive_comparison(self, basic_defaulter):
+        """Test comprehensive comparison with all factors."""
+        current_best = {
+            "codec_id": "A_TRUEHD",  # TrueHD Atmos
+            "audio_samp_freq": 48000,
+            "audio_channels": 8,
+            "name": "English [TrueHD Atmos]",
+            "default": True,
+        }
+
+        candidates = [
+            {
+                "codec_id": "A_AC3",  # AC-3 5.1
+                "audio_samp_freq": 48000,
+                "audio_channels": 6,
+                "name": "English [Dolby Digital 5.1]",
+            },
+            {
+                "codec_id": "A_DTS",  # DTS-HD MA 7.1
+                "audio_samp_freq": 48000,
+                "audio_channels": 8,
+                "name": "English [DTS-HD MA 7.1]",
+            },
+            {
+                "codec_id": "A_AC3",  # Audio Description
+                "audio_samp_freq": 48000,
+                "audio_channels": 6,
+                "name": "English [Audio Description]",
+            },
+        ]
+
+        # None should beat TrueHD Atmos
+        for candidate in candidates:
+            result = basic_defaulter.is_better_audio_track(candidate, current_best)
+            assert result is False, f"Candidate {candidate['name']} should not beat TrueHD Atmos"
+
+        # But DTS-HD MA should beat AC-3
+        ac3_track = candidates[0]  # AC-3 5.1
+        dts_track = candidates[1]  # DTS-HD MA 7.1
+
+        result = basic_defaulter.is_better_audio_track(dts_track, ac3_track)
+        assert result is True, "DTS-HD MA should beat AC-3"
+
+
+class TestProcessMediaFileTracksUpdated:
+    """Test the updated process_media_file_tracks method with audio quality comparison."""
+
+    @pytest.fixture
+    def basic_defaulter(self):
+        """Create a basic MKVAudioSubsDefaulter instance for testing."""
+        return MKVAudioSubsDefaulter(
+            file_or_library_path="/test/path", audio_lang_code="eng", subtitle_lang_code="eng"
+        )
+
+    def test_process_media_file_tracks_with_quality_selection(self, basic_defaulter):
+        """Test processing media file tracks with quality-based audio selection."""
         with patch.object(basic_defaulter, "verify_language_code", return_value=True):
             with patch.object(basic_defaulter, "set_log_level"):
                 with patch("sys.platform", "linux"):
                     with patch.object(mkv_module, "subproc_run") as mock_subproc:
                         tracks_info = {
                             "audio": {
-                                0: {"language": "jpn", "default": True, "sample_freq": 44100},
-                                1: {"language": "eng", "default": False, "sample_freq": 48000},
+                                0: {
+                                    "language": "eng",
+                                    "default": True,
+                                    "codec_id": "A_AC3",
+                                    "audio_samp_freq": 48000,
+                                    "audio_channels": 6,
+                                    "name": "English [AC-3 5.1]",
+                                },
+                                1: {
+                                    "language": "eng",
+                                    "default": False,
+                                    "codec_id": "A_TRUEHD",
+                                    "audio_samp_freq": 48000,
+                                    "audio_channels": 8,
+                                    "name": "English [TrueHD Atmos]",
+                                },
+                                2: {
+                                    "language": "eng",
+                                    "default": False,
+                                    "codec_id": "A_DTS",
+                                    "audio_samp_freq": 48000,
+                                    "audio_channels": 8,
+                                    "name": "English [DTS-HD MA]",
+                                },
                             },
                             "subtitles": {
-                                2: {"language": "jpn", "default": True},
                                 3: {"language": "eng", "default": False},
                             },
                         }
@@ -473,6 +833,51 @@ class TestMKVAudioSubsDefaulter:
                         assert result[5] == 0  # invalid_count
                         assert result[6] == 0  # failed_count
 
+    def test_process_media_file_tracks_no_changes_needed(self, basic_defaulter):
+        """Test processing media file tracks when no changes are needed."""
+        with patch.object(basic_defaulter, "verify_language_code", return_value=True):
+            with patch.object(basic_defaulter, "set_log_level"):
+                tracks_info = {
+                    "audio": {
+                        0: {
+                            "language": "eng",
+                            "default": True,
+                            "codec_id": "A_AC3",
+                            "audio_samp_freq": 48000,
+                            "audio_channels": 6,
+                        }
+                    },
+                    "subtitles": {1: {"language": "eng", "default": True}},
+                }
+
+                media_file_info = ("/test/movie.mkv", tracks_info)
+
+                result = basic_defaulter.process_media_file_tracks(media_file_info)
+
+                assert result[0] == (".mkv", 1)
+                assert result[1] == 0  # successful_count
+                assert result[2] == 0  # estimated_successful
+                assert result[3] == 1  # unchanged_count (no changes needed)
+                assert result[4] == 0  # miss_track_count
+                assert result[5] == 0  # invalid_count
+                assert result[6] == 0  # failed_count
+
+    def test_process_media_file_tracks_non_mkv_no_multiprocessing(self, basic_defaulter):
+        """Test processing media file tracks with non-MKV file without multiprocessing."""
+        with patch.object(basic_defaulter, "verify_language_code", return_value=True):
+            with patch.object(basic_defaulter, "set_log_level"):
+                media_file_info = ("/test/movie.mp4", {"audio": {}, "subtitles": {}})
+
+                result = basic_defaulter.process_media_file_tracks(media_file_info)
+
+                assert result[0] == (".mp4", 1)  # File extension and count
+                assert result[1] == 0  # successful_count
+                assert result[2] == 0  # estimated_successful
+                assert result[3] == 0  # unchanged_count
+                assert result[4] == 0  # miss_track_count
+                assert result[5] == 1  # invalid_count (non-MKV file)
+                assert result[6] == 0  # failed_count
+
     def test_process_media_file_tracks_dry_run(self, basic_defaulter):
         """Test processing media file tracks in dry run mode."""
         basic_defaulter.dry_run = True
@@ -481,8 +886,20 @@ class TestMKVAudioSubsDefaulter:
             with patch.object(basic_defaulter, "set_log_level"):
                 tracks_info = {
                     "audio": {
-                        0: {"language": "jpn", "default": True, "sample_freq": 44100},
-                        1: {"language": "eng", "default": False, "sample_freq": 48000},
+                        0: {
+                            "language": "jpn",
+                            "default": True,
+                            "codec_id": "A_AC3",
+                            "audio_samp_freq": 44100,
+                            "audio_channels": 6,
+                        },
+                        1: {
+                            "language": "eng",
+                            "default": False,
+                            "codec_id": "A_TRUEHD",
+                            "audio_samp_freq": 48000,
+                            "audio_channels": 8,
+                        },
                     },
                     "subtitles": {
                         2: {"language": "jpn", "default": True},
@@ -508,9 +925,16 @@ class TestMKVAudioSubsDefaulter:
 
         with patch.object(basic_defaulter, "verify_language_code", return_value=True):
             with patch.object(basic_defaulter, "set_log_level"):
-                # Missing English audio track
                 tracks_info = {
-                    "audio": {0: {"language": "jpn", "default": True, "sample_freq": 44100}},
+                    "audio": {
+                        0: {
+                            "language": "jpn",
+                            "default": True,
+                            "codec_id": "A_AC3",
+                            "audio_samp_freq": 44100,
+                            "audio_channels": 6,
+                        }
+                    },
                     "subtitles": {1: {"language": "eng", "default": False}},
                 }
 
@@ -528,17 +952,21 @@ class TestMKVAudioSubsDefaulter:
 
     def test_process_media_file_tracks_missing_track_lazy(self, basic_defaulter):
         """Test processing media file tracks with missing track in lazy mode."""
-
         basic_defaulter.default_method = "lazy"
 
         with patch.object(basic_defaulter, "verify_language_code", return_value=True):
             with patch.object(basic_defaulter, "set_log_level"):
                 with patch.object(mkv_module, "subproc_run") as mock_subproc:
                     with patch("sys.platform", "linux"):
-                        # Missing English audio track, but has English subtitles
                         tracks_info = {
                             "audio": {
-                                0: {"language": "jpn", "default": True, "sample_freq": 44100}
+                                0: {
+                                    "language": "jpn",
+                                    "default": True,
+                                    "codec_id": "A_AC3",
+                                    "audio_samp_freq": 44100,
+                                    "audio_channels": 6,
+                                }
                             },
                             "subtitles": {
                                 1: {"language": "jpn", "default": True},
@@ -566,7 +994,6 @@ class TestMKVAudioSubsDefaulter:
 
     def test_process_media_file_tracks_subtitle_off(self, basic_defaulter):
         """Test processing media file tracks with subtitle set to 'off'."""
-
         basic_defaulter.subtitle_lang_code = "off"
 
         with patch.object(basic_defaulter, "verify_language_code", return_value=True):
@@ -575,7 +1002,13 @@ class TestMKVAudioSubsDefaulter:
                     with patch.object(mkv_module, "subproc_run") as mock_subproc:
                         tracks_info = {
                             "audio": {
-                                0: {"language": "eng", "default": True, "sample_freq": 48000}
+                                0: {
+                                    "language": "eng",
+                                    "default": True,
+                                    "codec_id": "A_AC3",
+                                    "audio_samp_freq": 48000,
+                                    "audio_channels": 6,
+                                }
                             },
                             "subtitles": {1: {"language": "eng", "default": True}},
                         }
@@ -599,6 +1032,53 @@ class TestMKVAudioSubsDefaulter:
                         assert result[4] == 0  # miss_track_count
                         assert result[5] == 0  # invalid_count
                         assert result[6] == 0  # failed_count
+
+
+class TestGetMediaFilesInfo:
+    """Test the get_media_files_info method."""
+
+    @pytest.fixture
+    def basic_defaulter(self):
+        """Create a basic MKVAudioSubsDefaulter instance for testing."""
+        return MKVAudioSubsDefaulter(
+            file_or_library_path="/test/path", audio_lang_code="eng", subtitle_lang_code="eng"
+        )
+
+    def test_get_media_files_info_single_file_no_multiprocessing(self, basic_defaulter):
+        """Test getting media files info from single file without multiprocessing."""
+        basic_defaulter.file_or_library_path = "/test/movie.mkv"
+        basic_defaulter.pool_size = 1
+
+        with patch("os.path.isdir", return_value=False):
+            media_file_paths = []
+
+            if basic_defaulter.file_or_library_path.endswith(basic_defaulter.file_extensions):
+                media_file_paths = [basic_defaulter.file_or_library_path]
+
+            assert len(media_file_paths) == 1
+            assert media_file_paths[0] == "/test/movie.mkv"
+
+            fake_pool_results = [("/test/movie.mkv", {"audio": {}, "subtitles": {}})]
+
+            media_info = {}
+            for file_path, tracks_info in fake_pool_results:
+                media_info[file_path] = tracks_info
+
+            assert len(media_info) == 1
+            assert "/test/movie.mkv" in media_info
+            assert media_info["/test/movie.mkv"]["audio"] == {}
+            assert media_info["/test/movie.mkv"]["subtitles"] == {}
+
+
+class TestChangeDefaultTracks:
+    """Test the change_default_tracks method."""
+
+    @pytest.fixture
+    def basic_defaulter(self):
+        """Create a basic MKVAudioSubsDefaulter instance for testing."""
+        return MKVAudioSubsDefaulter(
+            file_or_library_path="/test/path", audio_lang_code="eng", subtitle_lang_code="eng"
+        )
 
     def test_change_default_tracks_simple(self, basic_defaulter):
         """Test the main change_default_tracks method without multiprocessing complexity."""
@@ -690,6 +1170,8 @@ class TestIntegration:
                         "default_track": True,
                         "enabled_track": True,
                         "forced_track": False,
+                        "codec_id": "A_AC3",
+                        "audio_channels": 6,
                         "audio_sampling_frequency": 48000,
                     },
                 },
@@ -702,7 +1184,9 @@ class TestIntegration:
                         "default_track": False,
                         "enabled_track": True,
                         "forced_track": False,
-                        "audio_sampling_frequency": 44100,
+                        "codec_id": "A_DTS",
+                        "audio_channels": 8,
+                        "audio_sampling_frequency": 48000,
                     },
                 },
                 {
@@ -719,6 +1203,86 @@ class TestIntegration:
                 },
             ]
         }
+
+    def test_integration_audio_quality_selection(self):
+        """Integration test: end-to-end audio quality selection."""
+        defaulter = MKVAudioSubsDefaulter(
+            file_or_library_path="/test/movie.mkv", audio_lang_code="eng", subtitle_lang_code="off"
+        )
+
+        sample_output = {
+            "tracks": [
+                {
+                    "id": 0,
+                    "type": "audio",
+                    "properties": {
+                        "language": "eng",
+                        "track_name": "English [AC-3 5.1]",
+                        "default_track": True,
+                        "enabled_track": True,
+                        "forced_track": False,
+                        "codec_id": "A_AC3",
+                        "audio_channels": 6,
+                        "audio_sampling_frequency": 48000,
+                    },
+                },
+                {
+                    "id": 1,
+                    "type": "audio",
+                    "properties": {
+                        "language": "eng",
+                        "track_name": "English [TrueHD Atmos]",
+                        "default_track": False,
+                        "enabled_track": True,
+                        "forced_track": False,
+                        "codec_id": "A_TRUEHD",
+                        "audio_channels": 8,
+                        "audio_sampling_frequency": 48000,
+                    },
+                },
+                {
+                    "id": 2,
+                    "type": "audio",
+                    "properties": {
+                        "language": "eng",
+                        "track_name": "English [DTS-HD MA 7.1]",
+                        "default_track": False,
+                        "enabled_track": True,
+                        "forced_track": False,
+                        "codec_id": "A_DTS",
+                        "audio_channels": 8,
+                        "audio_sampling_frequency": 48000,
+                    },
+                },
+            ]
+        }
+
+        with patch("sys.platform", "linux"):
+            with patch.object(mkv_module, "subproc_run") as mock_subproc:
+                mock_process = Mock()
+                mock_process.returncode = 0
+                mock_process.stdout = json.dumps(sample_output).encode("utf-8")
+                mock_process.stderr = b""
+                mock_subproc.return_value = mock_process
+
+                file_path, tracks_info = defaulter.process_media_file_info("/test/movie.mkv")
+
+                eng_tracks = {
+                    k: v for k, v in tracks_info["audio"].items() if v["language"] == "eng"
+                }
+
+                assert len(eng_tracks) == 3
+
+                ac3_track = next(v for v in eng_tracks.values() if v["codec_id"] == "A_AC3")
+                truehd_track = next(v for v in eng_tracks.values() if v["codec_id"] == "A_TRUEHD")
+                dts_track = next(v for v in eng_tracks.values() if v["codec_id"] == "A_DTS")
+
+                # TrueHD should beat both AC-3 and DTS
+                assert defaulter.is_better_audio_track(truehd_track, ac3_track)
+                assert defaulter.is_better_audio_track(truehd_track, dts_track)
+
+                # DTS should beat AC-3
+                assert defaulter.is_better_audio_track(dts_track, ac3_track)
 
     def test_integration_library_processing_simple_no_multiprocessing(self):
         """Integration test: process library with simple mocking."""
@@ -740,9 +1304,42 @@ class TestIntegration:
         }
 
         test_files_info = {
-            paths["movie"]: {"audio": {0: {"language": "eng", "default": True}}, "subtitles": {}},
-            paths["ep1"]: {"audio": {0: {"language": "jpn", "default": True}}, "subtitles": {}},
-            paths["ep2"]: {"audio": {0: {"language": "eng", "default": True}}, "subtitles": {}},
+            paths["movie"]: {
+                "audio": {
+                    0: {
+                        "language": "eng",
+                        "default": True,
+                        "codec_id": "A_AC3",
+                        "audio_channels": 6,
+                        "audio_samp_freq": 48000,
+                    }
+                },
+                "subtitles": {},
+            },
+            paths["ep1"]: {
+                "audio": {
+                    0: {
+                        "language": "jpn",
+                        "default": True,
+                        "codec_id": "A_AC3",
+                        "audio_channels": 6,
+                        "audio_samp_freq": 48000,
+                    }
+                },
+                "subtitles": {},
+            },
+            paths["ep2"]: {
+                "audio": {
+                    0: {
+                        "language": "eng",
+                        "default": True,
+                        "codec_id": "A_TRUEHD",
+                        "audio_channels": 8,
+                        "audio_samp_freq": 48000,
+                    }
+                },
+                "subtitles": {},
+            },
         }
 
         with patch("os.path.isdir", return_value=True):
@@ -933,7 +1530,6 @@ class TestCommandLineArguments:
     @patch("sys.argv", ["MKVAudioSubsDefaulter.py", "-lc"])
     def test_cmd_parse_args_language_codes(self):
         """Test parsing language codes argument."""
-
         args = cmd_parse_args()
         assert args.language_codes is True
 
@@ -942,7 +1538,6 @@ class TestCommandLineArguments:
     )
     def test_cmd_parse_args_basic_file(self):
         """Test parsing basic file arguments."""
-
         args = cmd_parse_args()
 
         assert args.file == "/test/movie.mkv"
@@ -979,7 +1574,6 @@ class TestCommandLineArguments:
     )
     def test_cmd_parse_args_full_library(self):
         """Test parsing full library arguments."""
-
         args = cmd_parse_args()
 
         assert args.library == "/test/library"
@@ -996,14 +1590,12 @@ class TestCommandLineArguments:
     @patch("sys.argv", ["MKVAudioSubsDefaulter.py", "-lc", "-f", "/test/movie.mkv"])
     def test_cmd_parse_args_language_codes_with_other_args_error(self):
         """Test that language codes cannot be used with other arguments."""
-
         with pytest.raises(SystemExit):
             cmd_parse_args()
 
     @patch("sys.argv", ["MKVAudioSubsDefaulter.py", "-f", "/test/movie.mkv", "-a", "eng"])
     def test_cmd_parse_args_missing_subtitle(self):
         """Test that either audio or subtitle is required when using file/library."""
-
         args = cmd_parse_args()
         assert args.file == "/test/movie.mkv"
         assert args.audio == "eng"
@@ -1012,14 +1604,12 @@ class TestCommandLineArguments:
     @patch("sys.argv", ["MKVAudioSubsDefaulter.py", "-f", "/test/movie.mkv"])
     def test_cmd_parse_args_no_audio_or_subtitle(self):
         """Test error when file is specified without audio or subtitle."""
-
         with pytest.raises(SystemExit):
             cmd_parse_args()
 
     @patch("sys.argv", ["MKVAudioSubsDefaulter.py", "-a", "eng", "-s", "jpn"])
     def test_cmd_parse_args_no_file_or_library(self):
         """Test error when audio/subtitle specified without file or library."""
-
         with pytest.raises(SystemExit):
             cmd_parse_args()
 
@@ -1028,7 +1618,6 @@ class TestCommandLineArguments:
     )
     def test_cmd_parse_args_audio_off_error(self):
         """Test error when audio is set to 'off'."""
-
         with pytest.raises(SystemExit):
             cmd_parse_args()
 
@@ -1048,7 +1637,6 @@ class TestCommandLineArguments:
     )
     def test_cmd_parse_args_invalid_default_method(self):
         """Test error with invalid default method."""
-
         with pytest.raises(SystemExit):
             cmd_parse_args()
 
@@ -1058,7 +1646,6 @@ class TestCommandLineArguments:
     )
     def test_cmd_parse_args_depth_with_file_error(self):
         """Test error when depth is used with file instead of library."""
-
         with pytest.raises(SystemExit):
             cmd_parse_args()
 
@@ -1078,7 +1665,6 @@ class TestCommandLineArguments:
     )
     def test_cmd_parse_args_pool_size_with_file_error(self):
         """Test error when pool size is used with file instead of library."""
-
         with pytest.raises(SystemExit):
             cmd_parse_args()
 
@@ -1098,16 +1684,333 @@ class TestCommandLineArguments:
     )
     def test_cmd_parse_args_regex_filter_with_file_error(self):
         """Test error when regex filter is used with file instead of library."""
-
         with pytest.raises(SystemExit):
             cmd_parse_args()
 
     @patch("sys.argv", ["MKVAudioSubsDefaulter.py", "-v", "2"])
     def test_cmd_parse_args_verbose_without_file_library_error(self):
         """Test error when verbose is used without file or library."""
-
         with pytest.raises(SystemExit):
             cmd_parse_args()
+
+
+class TestEdgeCases:
+    """Test edge cases and error conditions."""
+
+    @pytest.fixture
+    def basic_defaulter(self):
+        """Create a basic MKVAudioSubsDefaulter instance for testing."""
+        return MKVAudioSubsDefaulter(
+            file_or_library_path="/test/path", audio_lang_code="eng", subtitle_lang_code="eng"
+        )
+
+    def test_is_better_audio_track_with_empty_dict(self, basic_defaulter):
+        """Test audio comparison with empty track dictionaries."""
+        empty_track = {}
+        normal_track = {
+            "codec_id": "A_AC3",
+            "audio_samp_freq": 48000,
+            "audio_channels": 6,
+        }
+
+        # Empty track vs None - should be better
+        result = basic_defaulter.is_better_audio_track(empty_track, None)
+        assert result is True
+
+        # Normal track vs empty - normal should be better
+        result = basic_defaulter.is_better_audio_track(normal_track, empty_track)
+        assert result is True
+
+    def test_is_better_audio_track_with_none_values(self, basic_defaulter):
+        """Test audio comparison with None values in track properties."""
+        track_with_nones = {
+            "codec_id": None,
+            "audio_samp_freq": None,
+            "audio_channels": None,
+        }
+
+        normal_track = {
+            "codec_id": "A_AC3",
+            "audio_samp_freq": 48000,
+            "audio_channels": 6,
+        }
+
+        result = basic_defaulter.is_better_audio_track(normal_track, track_with_nones)
+        assert result is True
+
+    def test_process_media_file_tracks_mkvpropedit_failure(self, basic_defaulter):
+        """Test handling of mkvpropedit command failure."""
+        with patch.object(basic_defaulter, "verify_language_code", return_value=True):
+            with patch.object(basic_defaulter, "set_log_level"):
+                with patch("sys.platform", "linux"):
+                    with patch.object(mkv_module, "subproc_run") as mock_subproc:
+                        tracks_info = {
+                            "audio": {
+                                0: {
+                                    "language": "jpn",
+                                    "default": True,
+                                    "codec_id": "A_AC3",
+                                    "audio_samp_freq": 44100,
+                                    "audio_channels": 6,
+                                },
+                                1: {
+                                    "language": "eng",
+                                    "default": False,
+                                    "codec_id": "A_TRUEHD",
+                                    "audio_samp_freq": 48000,
+                                    "audio_channels": 8,
+                                },
+                            },
+                            "subtitles": {
+                                2: {"language": "jpn", "default": True},
+                                3: {"language": "eng", "default": False},
+                            },
+                        }
+
+                        media_file_info = ("/test/movie.mkv", tracks_info)
+
+                        mock_process = Mock()
+                        mock_process.returncode = 1
+                        error_output = {"errors": ["Permission denied", "File locked"]}
+                        mock_process.stdout = json.dumps(error_output).encode("utf-8")
+                        mock_process.stderr = b""
+                        mock_subproc.return_value = mock_process
+
+                        result = basic_defaulter.process_media_file_tracks(media_file_info)
+
+                        assert result[0] == (".mkv", 1)
+                        assert result[1] == 0  # successful_count
+                        assert result[2] == 0  # estimated_successful
+                        assert result[3] == 0  # unchanged_count
+                        assert result[4] == 0  # miss_track_count
+                        assert result[5] == 0  # invalid_count
+                        assert result[6] == 1  # failed_count (mkvpropedit failed)
+
+    def test_process_media_file_tracks_no_subtitles_off(self, basic_defaulter):
+        """Test processing when no subtitles exist and subtitle is set to 'off'."""
+        basic_defaulter.subtitle_lang_code = "off"
+
+        with patch.object(basic_defaulter, "verify_language_code", return_value=True):
+            with patch.object(basic_defaulter, "set_log_level"):
+                tracks_info = {
+                    "audio": {
+                        0: {
+                            "language": "eng",
+                            "default": True,
+                            "codec_id": "A_AC3",
+                            "audio_samp_freq": 48000,
+                            "audio_channels": 6,
+                        }
+                    },
+                    "subtitles": {},
+                }
+
+                media_file_info = ("/test/movie.mkv", tracks_info)
+
+                result = basic_defaulter.process_media_file_tracks(media_file_info)
+
+                assert result[0] == (".mkv", 1)
+                assert result[3] == 1  # unchanged_count
+
+
+class TestRealWorldScenarios:
+    """Test realistic scenarios based on actual media files."""
+
+    @pytest.fixture
+    def basic_defaulter(self):
+        """Create a basic MKVAudioSubsDefaulter instance for testing."""
+        return MKVAudioSubsDefaulter(
+            file_or_library_path="/test/path", audio_lang_code="eng", subtitle_lang_code="eng"
+        )
+
+    def test_bluray_rip_multiple_audio_tracks(self, basic_defaulter):
+        """Test scenario with Blu-ray rip having multiple high-quality English audio tracks."""
+        tracks_info = {
+            "audio": {
+                1: {  # TrueHD Atmos
+                    "language": "eng",
+                    "default": True,
+                    "codec_id": "A_TRUEHD",
+                    "audio_samp_freq": 48000,
+                    "audio_channels": 8,
+                    "name": "English [TrueHD Atmos]",
+                },
+                2: {  # AC-3 5.1 Commentary
+                    "language": "eng",
+                    "default": False,
+                    "codec_id": "A_AC3",
+                    "audio_samp_freq": 48000,
+                    "audio_channels": 6,
+                    "name": "English [Commentary]",
+                },
+                3: {  # DTS-HD MA 7.1
+                    "language": "eng",
+                    "default": False,
+                    "codec_id": "A_DTS",
+                    "audio_samp_freq": 48000,
+                    "audio_channels": 8,
+                    "name": "English [DTS-HD MA 7.1]",
+                },
+                4: {  # AC-3 Audio Description
+                    "language": "eng",
+                    "default": False,
+                    "codec_id": "A_AC3",
+                    "audio_samp_freq": 48000,
+                    "audio_channels": 6,
+                    "name": "English [Audio Description]",
+                },
+            },
+            "subtitles": {
+                5: {
+                    "language": "eng",
+                    "default": False,
+                    "name": "English [SDH]",
+                },
+            },
+        }
+
+        best_track = None
+        best_track_id = None
+
+        for track_id, track in tracks_info["audio"].items():
+            if track["language"] == "eng":
+                if basic_defaulter.is_better_audio_track(track, best_track):
+                    best_track = track
+                    best_track_id = track_id
+
+        # Should select TrueHD Atmos (track 1)
+        assert best_track_id == 1
+        assert best_track["codec_id"] == "A_TRUEHD"
+        assert best_track["audio_channels"] == 8
+
+    def test_anime_release_scenario(self, basic_defaulter):
+        """Test scenario with anime release having Japanese default and English dub available."""
+        tracks_info = {
+            "audio": {
+                0: {  # Japanese original (default)
+                    "language": "jpn",
+                    "default": True,
+                    "codec_id": "A_AC3",
+                    "audio_samp_freq": 48000,
+                    "audio_channels": 2,
+                    "name": "Japanese [Stereo]",
+                },
+                1: {  # English dub
+                    "language": "eng",
+                    "default": False,
+                    "codec_id": "A_AC3",
+                    "audio_samp_freq": 48000,
+                    "audio_channels": 6,
+                    "name": "English [5.1]",
+                },
+            },
+            "subtitles": {
+                2: {
+                    "language": "eng",
+                    "default": False,
+                    "name": "English [Subtitles]",
+                },
+                3: {
+                    "language": "eng",
+                    "default": False,
+                    "name": "English [Signs & Songs]",
+                },
+            },
+        }
+
+        # Test that English audio is selected when requested
+        eng_tracks = {k: v for k, v in tracks_info["audio"].items() if v["language"] == "eng"}
+        assert len(eng_tracks) == 1
+
+        eng_track = list(eng_tracks.values())[0]
+
+        # English track should be selected when language is "eng"
+        # Even though Japanese might be higher quality source, English is what's requested
+        result = basic_defaulter.is_better_audio_track(eng_track, None)
+        assert result is True
+
+    def test_streaming_rip_scenario(self, basic_defaulter):
+        """Test scenario with streaming rip having limited audio options."""
+        tracks_info = {
+            "audio": {
+                0: {
+                    "language": "eng",
+                    "default": True,
+                    "codec_id": "A_AAC",
+                    "audio_samp_freq": 48000,
+                    "audio_channels": 6,
+                    "name": "English [AAC 5.1]",
+                },
+                1: {
+                    "language": "eng",
+                    "default": False,
+                    "codec_id": "A_AAC",
+                    "audio_samp_freq": 48000,
+                    "audio_channels": 2,
+                    "name": "English [AAC Stereo]",
+                },
+            },
+            "subtitles": {
+                2: {
+                    "language": "eng",
+                    "default": True,
+                    "name": "English [CC]",
+                },
+            },
+        }
+
+        # Test that 5.1 AAC is preferred over stereo AAC
+        aac_51 = tracks_info["audio"][0]
+        aac_stereo = tracks_info["audio"][1]
+
+        result = basic_defaulter.is_better_audio_track(aac_51, aac_stereo)
+        assert result is True  # 5.1 should beat stereo
+
+    def test_foreign_film_scenario(self, basic_defaulter):
+        """Test scenario with foreign film having original language and English dub."""
+        basic_defaulter.audio_lang_code = "fre"
+        basic_defaulter.subtitle_lang_code = "eng"
+
+        tracks_info = {
+            "audio": {
+                0: {
+                    "language": "fre",
+                    "default": True,
+                    "codec_id": "A_DTS",
+                    "audio_samp_freq": 48000,
+                    "audio_channels": 6,
+                    "name": "French [DTS 5.1]",
+                },
+                1: {
+                    "language": "eng",
+                    "default": False,
+                    "codec_id": "A_AC3",
+                    "audio_samp_freq": 48000,
+                    "audio_channels": 6,
+                    "name": "English [AC-3 5.1]",
+                },
+            },
+            "subtitles": {
+                2: {
+                    "language": "fre",
+                    "default": True,
+                    "name": "French [SDH]",
+                },
+                3: {
+                    "language": "eng",
+                    "default": False,
+                    "name": "English [Subtitles]",
+                },
+            },
+        }
+
+        # Should prefer French audio (original language)
+        # French DTS should beat English AC-3 when French is requested
+        with patch.object(basic_defaulter, "verify_language_code", return_value=True):
+            fre_tracks = {k: v for k, v in tracks_info["audio"].items() if v["language"] == "fre"}
+
+            assert len(fre_tracks) == 1
+            assert fre_tracks[0]["codec_id"] == "A_DTS"
 
 
 if __name__ == "__main__":

@@ -53,6 +53,93 @@
       "type": "video"
     },
     {
+      "codec": "TrueHD Atmos",
+      "id": 1,
+      "properties": {
+        "audio_channels": 8,
+        "audio_sampling_frequency": 48000,
+        "codec_id": "A_TRUEHD",
+        "codec_private_length": 0,
+        "default_track": true,
+        "enabled_track": true,
+        "forced_track": false,
+        "language": "eng",
+        "language_ietf": "en",
+        "minimum_timestamp": 0,
+        "num_index_entries": 0,
+        "number": 2,
+        "uid": 1234567
+      },
+      "type": "audio"
+    },
+    {
+      "codec": "AC-3",
+      "id": 2,
+      "properties": {
+        "audio_channels": 6,
+        "audio_sampling_frequency": 48000,
+        "codec_id": "A_AC3",
+        "codec_private_length": 0,
+        "default_duration": 32000000,
+        "default_track": false,
+        "enabled_track": true,
+        "forced_track": false,
+        "language": "eng",
+        "language_ietf": "en",
+        "minimum_timestamp": 0,
+        "num_index_entries": 0,
+        "number": 3,
+        "track_name": "English [Dolby Digital 5.1]",
+        "uid": 697918238
+      },
+      "type": "audio"
+    },
+    {
+      "codec": "DTS-HD Master Audio",
+      "id": 3,
+      "properties": {
+        "audio_bits_per_sample": 16,
+        "audio_channels": 8,
+        "audio_sampling_frequency": 48000,
+        "codec_id": "A_DTS",
+        "codec_private_length": 0,
+        "default_duration": 10666667,
+        "default_track": false,
+        "enabled_track": true,
+        "forced_track": false,
+        "language": "eng",
+        "language_ietf": "en",
+        "minimum_timestamp": 0,
+        "num_index_entries": 0,
+        "number": 4,
+        "track_name": "English [DTS-HD MA 7.1]",
+        "uid": 987812398
+      },
+      "type": "audio"
+    },
+    {
+      "codec": "AC-3",
+      "id": 4,
+      "properties": {
+        "audio_channels": 6,
+        "audio_sampling_frequency": 48000,
+        "codec_id": "A_AC3",
+        "codec_private_length": 0,
+        "default_duration": 32000000,
+        "default_track": false,
+        "enabled_track": true,
+        "forced_track": false,
+        "language": "eng",
+        "language_ietf": "en",
+        "minimum_timestamp": 0,
+        "num_index_entries": 0,
+        "number": 5,
+        "track_name": "English [Audio Description]",
+        "uid": 981723987
+      },
+      "type": "audio"
+    },
+    {
       "codec": "AAC",
       "id": 1,
       "properties": {
