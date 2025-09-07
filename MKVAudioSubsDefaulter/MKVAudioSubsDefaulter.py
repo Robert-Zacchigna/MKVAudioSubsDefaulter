@@ -277,8 +277,13 @@ class MKVAudioSubsDefaulter(object):
             process = subproc_run([mkvmerge_path, "-J", file_path], capture_output=True, check=True)
             output, _ = process.stdout, process.stderr
 
-        if process.returncode == 0:
-            media_tracks_info = json.loads(output.decode("utf-8"))["tracks"]
+        output = json.loads(output.decode("utf-8"))
+
+        file_recognized = output["container"]["recognized"]
+        file_supported = output["container"]["supported"]
+
+        if process.returncode == 0 and file_recognized and file_supported:
+            media_tracks_info = output["tracks"]
             tracks_info = {"audio": {}, "subtitles": {}}
 
             for track in media_tracks_info:
@@ -287,12 +292,18 @@ class MKVAudioSubsDefaulter(object):
 
             return file_path, tracks_info
         else:
+            err_msg = f'Error processing file: "{file_path}"'
+
             try:
-                raise Exception(
-                    "".join(error for error in json.loads(output.decode("utf8"))["errors"])
-                )
+                if output["errors"]:
+                    err_msg += f" - File Errors: {', '.join(error for error in output['errors'])}"
+
+                if file_recognized or not file_supported:
+                    err_msg += " - The file type is either NOT recognized or NOT supported (its possible this file is a 'fake' .mkv file)"
             except json.decoder.JSONDecodeError:
-                raise Exception(output.decode("utf8"))
+                err_msg += f" - {output}"
+
+            raise Exception(err_msg)
 
     def get_media_files_info(self) -> dict:
         media_file_paths = []

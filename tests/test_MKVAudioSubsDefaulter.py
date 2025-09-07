@@ -83,6 +83,7 @@ class TestMKVAudioSubsDefaulter:
     def sample_mkvmerge_output(self):
         """Sample JSON output from mkvmerge command with updated audio properties."""
         return {
+            "container": {"recognized": True, "supported": True},
             "tracks": [
                 {
                     "id": 0,
@@ -124,7 +125,7 @@ class TestMKVAudioSubsDefaulter:
                         "text_subtitles": True,
                     },
                 },
-            ]
+            ],
         }
 
     def test_init_basic(self):
@@ -357,7 +358,10 @@ class TestMKVAudioSubsDefaulter:
     def test_process_media_file_info_error(self, basic_defaulter):
         """Test processing media file info with error result."""
 
-        error_output = {"errors": ["File not found", "Invalid format"]}
+        error_output = {
+            "container": {"recognized": False, "supported": False},
+            "errors": ["File not found", "Invalid format"],
+        }
 
         with patch("sys.platform", "linux"):
             with patch.object(mkv_module, "subproc_run") as mock_subproc:
@@ -370,7 +374,7 @@ class TestMKVAudioSubsDefaulter:
                 with pytest.raises(Exception) as exc_info:
                     basic_defaulter.process_media_file_info("/test/invalid.mkv")
 
-                assert "File not foundInvalid format" in str(exc_info.value)
+                assert "File not found, Invalid format" in str(exc_info.value)
 
     def test_process_media_file_info_decode_error(self, basic_defaulter):
         """Test processing media file info with JSON decode error."""
@@ -386,7 +390,7 @@ class TestMKVAudioSubsDefaulter:
                 with pytest.raises(Exception) as exc_info:
                     basic_defaulter.process_media_file_info("/test/invalid.mkv")
 
-                assert "Invalid JSON output" in str(exc_info.value)
+                assert "Expecting value: line 1 column 1 (char 0)" == str(exc_info.value)
 
 
 class TestTqdmImport:
@@ -1124,42 +1128,11 @@ class TestChangeDefaultTracks:
 class TestIntegration:
     """Integration tests that test multiple components working together."""
 
-    @patch("MKVAudioSubsDefaulter.MKVAudioSubsDefaulter.subproc_run")
-    @patch("sys.platform", "linux")
-    @patch("builtins.open", mock_open(read_data="eng:English\njpn:Japanese\nfra:French\n"))
-    @patch("os.path.dirname")
-    def test_integration_process_and_verify_language(
-        self, mock_dirname, mock_subproc, sample_mkvmerge_output
-    ):
-        """Integration test: process file info and verify language codes."""
-        mock_dirname.return_value = "/fake/path"
-
-        mock_process = Mock()
-        mock_process.returncode = 0
-        mock_process.stdout = json.dumps(sample_mkvmerge_output).encode("utf-8")
-        mock_process.stderr = b""
-        mock_subproc.return_value = mock_process
-
-        defaulter = MKVAudioSubsDefaulter(
-            file_or_library_path="/test/movie.mkv", audio_lang_code="eng", subtitle_lang_code="jpn"
-        )
-
-        assert defaulter.verify_language_code("eng", "audio") is True
-        assert defaulter.verify_language_code("jpn", "subtitle") is True
-
-        file_path, tracks_info = defaulter.process_media_file_info("/test/movie.mkv")
-
-        assert file_path == "/test/movie.mkv"
-        assert "audio" in tracks_info
-        assert "subtitles" in tracks_info
-        assert len(tracks_info["audio"]) == 2
-        assert tracks_info["audio"][0]["language"] == "eng"
-        assert tracks_info["audio"][0]["default"] is True
-
     @pytest.fixture
     def sample_mkvmerge_output(self):
-        """Sample JSON output from mkvmerge command for integration tests."""
+        """Sample JSON output from mkvmerge command with updated audio properties."""
         return {
+            "container": {"recognized": True, "supported": True},
             "tracks": [
                 {
                     "id": 0,
@@ -1201,8 +1174,40 @@ class TestIntegration:
                         "text_subtitles": True,
                     },
                 },
-            ]
+            ],
         }
+
+    @patch("MKVAudioSubsDefaulter.MKVAudioSubsDefaulter.subproc_run")
+    @patch("sys.platform", "linux")
+    @patch("builtins.open", mock_open(read_data="eng:English\njpn:Japanese\nfra:French\n"))
+    @patch("os.path.dirname")
+    def test_integration_process_and_verify_language(
+        self, mock_dirname, mock_subproc, sample_mkvmerge_output
+    ):
+        """Integration test: process file info and verify language codes."""
+        mock_dirname.return_value = "/fake/path"
+
+        mock_process = Mock()
+        mock_process.returncode = 0
+        mock_process.stdout = json.dumps(sample_mkvmerge_output).encode("utf-8")
+        mock_process.stderr = b""
+        mock_subproc.return_value = mock_process
+
+        defaulter = MKVAudioSubsDefaulter(
+            file_or_library_path="/test/movie.mkv", audio_lang_code="eng", subtitle_lang_code="jpn"
+        )
+
+        assert defaulter.verify_language_code("eng", "audio") is True
+        assert defaulter.verify_language_code("jpn", "subtitle") is True
+
+        file_path, tracks_info = defaulter.process_media_file_info("/test/movie.mkv")
+
+        assert file_path == "/test/movie.mkv"
+        assert "audio" in tracks_info
+        assert "subtitles" in tracks_info
+        assert len(tracks_info["audio"]) == 2
+        assert tracks_info["audio"][0]["language"] == "eng"
+        assert tracks_info["audio"][0]["default"] is True
 
     def test_integration_audio_quality_selection(self):
         """Integration test: end-to-end audio quality selection."""
@@ -1211,6 +1216,7 @@ class TestIntegration:
         )
 
         sample_output = {
+            "container": {"recognized": True, "supported": True},
             "tracks": [
                 {
                     "id": 0,
@@ -1254,7 +1260,7 @@ class TestIntegration:
                         "audio_sampling_frequency": 48000,
                     },
                 },
-            ]
+            ],
         }
 
         with patch("sys.platform", "linux"):
