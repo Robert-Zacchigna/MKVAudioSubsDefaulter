@@ -299,7 +299,7 @@ class MKVAudioSubsDefaulter(object):
                     err_msg += f" - File Errors: {', '.join(error for error in output['errors'])}"
 
                 if not file_recognized or not file_supported:
-                    err_msg += " - The file type is either NOT recognized or NOT supported (its possible this file is a 'fake' .mkv file)"
+                    err_msg += " - The file type is either NOT recognized or NOT supported (its possible this is a 'fake' .mkv file)"
             except json.decoder.JSONDecodeError:
                 err_msg += f" - {output}"
 
