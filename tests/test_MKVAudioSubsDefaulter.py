@@ -358,6 +358,8 @@ class TestMKVAudioSubsDefaulter:
     def test_process_media_file_info_error(self, basic_defaulter):
         """Test processing media file info with error result."""
 
+        test_file = "/test/invalid.mkv"
+
         error_output = {
             "container": {"recognized": False, "supported": False},
             "errors": ["File not found", "Invalid format"],
@@ -371,10 +373,7 @@ class TestMKVAudioSubsDefaulter:
                 mock_process.stderr = b""
                 mock_subproc.return_value = mock_process
 
-                with pytest.raises(Exception) as exc_info:
-                    basic_defaulter.process_media_file_info("/test/invalid.mkv")
-
-                assert "File not found, Invalid format" in str(exc_info.value)
+                assert basic_defaulter.process_media_file_info(test_file) == (test_file, None)
 
     def test_process_media_file_info_decode_error(self, basic_defaulter):
         """Test processing media file info with JSON decode error."""

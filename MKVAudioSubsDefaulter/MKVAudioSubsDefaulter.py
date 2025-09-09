@@ -122,7 +122,7 @@ class MKVAudioSubsDefaulter(object):
         return directories
 
     @staticmethod
-    def get_language_codes(print_codes: bool = False) -> dict or None:
+    def get_language_codes(print_codes: bool = False) -> list[str] | None:
         with open(os.path.join(os.path.dirname(__file__), "language_codes.txt"), "r") as f:
             lines = f.readlines()
 
@@ -154,6 +154,7 @@ class MKVAudioSubsDefaulter(object):
                         for column in columns
                     )
                 )
+            return None
         else:
             return lines
 
@@ -243,7 +244,7 @@ class MKVAudioSubsDefaulter(object):
 
         return new_score > current_score
 
-    def process_media_file_info(self, file_path: str) -> [str, str]:
+    def process_media_file_info(self, file_path: str) -> tuple[str, dict[str, dict] | None]:
         def extract_track_info(track: dict) -> dict:
             track_prop = track["properties"]
 
@@ -303,7 +304,8 @@ class MKVAudioSubsDefaulter(object):
             except json.decoder.JSONDecodeError:
                 err_msg += f" - {output}"
 
-            raise Exception(err_msg)
+            LOGGER.error(err_msg)
+            return file_path, None
 
     def get_media_files_info(self) -> dict:
         media_file_paths = []
@@ -365,8 +367,8 @@ class MKVAudioSubsDefaulter(object):
 
         media_file_ext = os.path.splitext(media_file.lower())[1]
 
-        if not media_file.lower().endswith(".mkv"):
-            LOGGER.warning(f'Skipping File - "{media_file}" is NOT a matroska (.mkv) file')
+        if not media_file.lower().endswith(".mkv") or tracks_info is None:
+            LOGGER.error(f'Skipping File - "{media_file}" is NOT a matroska (.mkv) file')
             invalid_count += 1
         else:
             mkv_cmds = []
