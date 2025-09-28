@@ -703,7 +703,7 @@ def cmd_parse_args() -> argparse.Namespace:
             "Desired audio language (refer to language codes (CANNOT be 'OFF'): -lc, --language-codes)\n\n"
             "If multiple audio tracks with the same language code exist in the media file (e.g. two eng tracks),\n"
             "the track with the highest quality will be selected.\n\n"
-            "Track quality is determined by: codec, channels, and audio_smapling_frequency."
+            "Track quality is determined by: codec, number of channels, and audio_sampling_frequency."
         ),
     )
 

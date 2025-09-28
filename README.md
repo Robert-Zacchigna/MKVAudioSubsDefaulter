@@ -150,7 +150,7 @@ tracks must exist in the track list (if BOTH are missing, then no changes made t
 
 > [!NOTE]
 > In either case, if multiple `audio` tracks with the same language code are found, the *best quality* track
-> will be set as the default. Track quality is determined by: `codec`, `channels`, and `audio_smapling_frequency`.
+> will be set as the default. Track quality is determined by: `codec`, `number of channels`, and `audio_sampling_frequency`.
 
 ### Regex Filtering
 
@@ -255,7 +255,7 @@ CLI help output: `python MKVAudioSubsDefaulter.py -h `
                                     If multiple audio tracks with the same language code exist in the media file (e.g. two eng tracks),
                                     the track with the highest quality will be selected.
 
-                                    Track quality is determined by: codec, channels, and audio_smapling_frequency.
+                                    Track quality is determined by: codec, number of channels, and audio_sampling_frequency.
 
 -s, --subtitle                      Desired subtitle language (refer to language codes (CAN be 'OFF'): -lc, --language-codes)
 
