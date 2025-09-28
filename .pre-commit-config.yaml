@@ -6,10 +6,6 @@ repos:
     hooks:
       - id: poetry-check
       - id: poetry-lock
-#      - id: poetry-export
-#        args: ["-f", "requirements.txt", "-o", "requirements.txt", "--without-hashes"]
-#      - id: poetry-export  # Dev dependencies
-#        args: ["-f", "requirements.txt", "-o", "requirements_dev.txt", "--with", "dev", "--without-hashes"]
   - repo: https://github.com/asottile/reorder_python_imports
     rev: v3.14.0
     hooks:
@@ -31,9 +27,9 @@ repos:
       - id: mixed-line-ending
         args: ['--fix=auto']
       - id: trailing-whitespace
-#  - repo: https://github.com/szebenyib/pre-commit-pytest
-#    rev: 051fea31dbabf063ab38428c34a92c76d1abd5dc
-#    hooks:
-#    - id: pytest
-#      args: ['--cov-config=.coveragerc', '--cov-branch', '--cov=MKVAudioSubsDefaulter',
-#             '--cov-fail-under', '80', '--cov-report', 'term-missing', '--cov-report', 'xml', 'tests/']
+  - repo: https://github.com/szebenyib/pre-commit-pytest
+    rev: 051fea31dbabf063ab38428c34a92c76d1abd5dc
+    hooks:
+    - id: pytest
+      args: ['--cov-config=.coveragerc', '--cov-branch', '--cov=MKVAudioSubsDefaulter',
+             '--cov-fail-under', '80', '--cov-report', 'term-missing', '--cov-report', 'xml', 'tests/']

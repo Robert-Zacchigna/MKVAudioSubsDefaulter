@@ -20,7 +20,7 @@ except ImportError:
         '\nPlease verify its installation, "pip install tqdm", and try again.'
     )
 
-__version__ = "1.3.3"
+__version__ = "1.4.0"
 LOGGER = logging.getLogger(__name__)
 
 
@@ -122,7 +122,7 @@ class MKVAudioSubsDefaulter(object):
         return directories
 
     @staticmethod
-    def get_language_codes(print_codes: bool = False) -> dict or None:
+    def get_language_codes(print_codes: bool = False) -> list[str] | None:
         with open(os.path.join(os.path.dirname(__file__), "language_codes.txt"), "r") as f:
             lines = f.readlines()
 
@@ -154,6 +154,7 @@ class MKVAudioSubsDefaulter(object):
                         for column in columns
                     )
                 )
+            return None
         else:
             return lines
 
@@ -167,7 +168,83 @@ class MKVAudioSubsDefaulter(object):
             )
         return True
 
-    def process_media_file_info(self, file_path: str) -> [str, str]:
+    @staticmethod
+    def is_better_audio_track(new_track: dict, current_best_track: dict = None) -> bool:
+        if current_best_track is None:
+            return True
+
+        # Codec quality ranking (higher = better quality)
+        codec_rankings = {
+            # Lossless codecs (highest quality)
+            "A_TRUEHD": 100,  # TrueHD (includes Atmos)
+            "A_DTS": 95,  # DTS-HD MA (lossless)
+            "A_FLAC": 90,  # FLAC
+            "A_PCM": 85,  # PCM
+            # High-quality lossy codecs
+            "A_EAC3": 70,  # E-AC3 (Dolby Digital Plus)
+            "A_AC3": 60,  # AC3 (Dolby Digital)
+            "A_OPUS": 55,  # Opus
+            "A_VORBIS": 50,  # Vorbis
+            # Standard lossy codecs
+            "A_AAC": 40,  # AAC
+            "A_MP3": 30,  # MP3
+            "A_MP2": 20,  # MP2
+        }
+
+        def calculate_track_score(track: dict) -> float:
+            """Calculate a quality score for an audio track"""
+
+            codec_id = track.get("codec_id", "") if track.get("codec_id", "") is not None else ""
+            sample_freq = (
+                track.get("audio_samp_freq", 0)
+                if track.get("audio_samp_freq", "") is not None
+                else 0
+            )
+            channels = (
+                track.get("audio_channels", 0) if track.get("audio_channels", "") is not None else 0
+            )
+
+            codec_score = codec_rankings.get(codec_id, 10)  # Base Score
+
+            # Sampling frequency score (normalized to 0-20 range)
+            # Common frequencies: 44100, 48000, 88200, 96000, 176400, 192000
+            freq_score = min(20, (sample_freq / 48000) * 10) if sample_freq > 0 else 0
+
+            # Channel score (normalized to 0-15 range)
+            # More channels is generally better
+            if channels <= 2:
+                channel_score = channels * 3  # Stereo
+            elif channels <= 6:
+                channel_score = 6 + (channels - 2) * 2  # 5.1
+            else:
+                channel_score = 14 + (channels - 6) * 0.5  # 7.1+
+
+            channel_score = min(15, channel_score)
+
+            return codec_score + freq_score + channel_score
+
+        new_score = calculate_track_score(new_track)
+        current_score = calculate_track_score(current_best_track)
+
+        LOGGER.debug(
+            f"Audio track comparison - New: {new_score:.1f} vs Current Best: {current_score:.1f}"
+        )
+
+        LOGGER.debug(
+            f"New track - Codec: {new_track.get('codec_id')}, "
+            f"Channels: {new_track.get('audio_channels')}, "
+            f"Freq: {new_track.get('audio_samp_freq')}Hz"
+        )
+
+        LOGGER.debug(
+            f"Current best - Codec: {current_best_track.get('codec_id')}, "
+            f"Channels: {current_best_track.get('audio_channels')}, "
+            f"Freq: {current_best_track.get('audio_samp_freq')}Hz"
+        )
+
+        return new_score > current_score
+
+    def process_media_file_info(self, file_path: str) -> tuple[str, dict[str, dict] | None]:
         def extract_track_info(track: dict) -> dict:
             track_prop = track["properties"]
 
@@ -180,13 +257,20 @@ class MKVAudioSubsDefaulter(object):
                 "text_subtitles": (
                     track_prop.get("text_subtitles") if track["type"] == "subtitles" else None
                 ),
+                "codec_id": track_prop.get("codec_id", 0),
+                "audio_channels": track_prop.get("audio_channels", 0)
+                if track["type"] == "audio"
+                else None,
+                "audio_samp_freq": track_prop.get("audio_sampling_frequency", 0)
+                if track["type"] == "audio"
+                else None,
             }
 
         mkvmerge_path = os.path.join(
             "mkvmerge" if not self.mkvmerge_location else Path(self.mkvmerge_location)
         )
 
-        # Windows and linux handle subporcess cmds differently, this should ensure each system performs the same
+        # Windows and linux handle subprocess cmds differently, this should ensure each system performs the same
         if sys.platform == "win32":
             process = Popen([mkvmerge_path, "-J", file_path], shell=True, stdout=PIPE, stderr=PIPE)
             output, _ = process.communicate()
@@ -194,8 +278,13 @@ class MKVAudioSubsDefaulter(object):
             process = subproc_run([mkvmerge_path, "-J", file_path], capture_output=True, check=True)
             output, _ = process.stdout, process.stderr
 
-        if process.returncode == 0:
-            media_tracks_info = json.loads(output.decode("utf-8"))["tracks"]
+        output = json.loads(output.decode("utf-8"))
+
+        file_recognized = output["container"]["recognized"]
+        file_supported = output["container"]["supported"]
+
+        if process.returncode == 0 and file_recognized and file_supported:
+            media_tracks_info = output["tracks"]
             tracks_info = {"audio": {}, "subtitles": {}}
 
             for track in media_tracks_info:
@@ -204,12 +293,19 @@ class MKVAudioSubsDefaulter(object):
 
             return file_path, tracks_info
         else:
+            err_msg = f'Error processing file: "{file_path}"'
+
             try:
-                raise Exception(
-                    "".join(error for error in json.loads(output.decode("utf8"))["errors"])
-                )
+                if output["errors"]:
+                    err_msg += f" - File Errors: {', '.join(error for error in output['errors'])}"
+
+                if not file_recognized or not file_supported:
+                    err_msg += " - The file type is either NOT recognized or NOT supported (its possible this is a 'fake' .mkv file)"
             except json.decoder.JSONDecodeError:
-                raise Exception(output.decode("utf8"))
+                err_msg += f" - {output}"
+
+            LOGGER.error(err_msg)
+            return file_path, None
 
     def get_media_files_info(self) -> dict:
         media_file_paths = []
@@ -271,8 +367,8 @@ class MKVAudioSubsDefaulter(object):
 
         media_file_ext = os.path.splitext(media_file.lower())[1]
 
-        if not media_file.lower().endswith(".mkv"):
-            LOGGER.warning(f'Skipping File - "{media_file}" is NOT a matroska (.mkv) file')
+        if not media_file.lower().endswith(".mkv") or tracks_info is None:
+            LOGGER.error(f'Skipping File - "{media_file}" is NOT a matroska (.mkv) file')
             invalid_count += 1
         else:
             mkv_cmds = []
@@ -287,32 +383,71 @@ class MKVAudioSubsDefaulter(object):
                 if code is not None and self.verify_language_code(code, track_type):
                     current_default_track_num = None
                     new_default_track_num = None
+                    best_track_info = None
 
                     # --set flag-default=<1_for_ENABLE_0_for_DISABLE>
                     for track_num, track in tracks_info.get(track_type, {}).items():
-                        if track["default"]:
+                        is_default = track["default"]
+                        track_language = track["language"]
+
+                        if is_default:
                             current_default_track_num = track_num
 
-                            if code not in [track["language"], "off"]:
-                                track_num = (
-                                    (current_default_track_num - len(tracks_info.get("audio", {})))
+                            if code not in [track_language, "off"]:
+                                adjusted_track_num = (
+                                    (track_num - len(tracks_info.get("audio", {})))
                                     if track_type == "subtitles"
-                                    else current_default_track_num
+                                    else track_num
                                 )
 
-                                mkv_cmds += [
-                                    "--edit",
-                                    f"track:{track_type[0]}{track_num}",
-                                    "--set",
-                                    "flag-default=0",
-                                ]
-                            LOGGER.debug(f"Current Default - File: {media_file}, Track: {track}")
-                        elif track_type == "subtitles" and current_default_track_num is None:
+                                mkv_cmds.extend(
+                                    [
+                                        "--edit",
+                                        f"track:{track_type[0]}{adjusted_track_num}",
+                                        "--set",
+                                        "flag-default=0",
+                                    ]
+                                )
+
+                            LOGGER.debug(
+                                f"Current Default - File: {media_file}, Type: {track_type}, Track: {track}"
+                            )
+
+                        if track_type == "subtitles" and current_default_track_num is None:
                             current_default_track_num = "off"
 
-                        if track["language"] == code:
-                            new_default_track_num = track_num
-                            LOGGER.debug(f"New Default - File: {media_file}, Track: {track}")
+                        if track_language == code:
+                            if track_type == "audio":
+                                if self.is_better_audio_track(track, best_track_info):
+                                    if best_track_info is not None:
+                                        LOGGER.debug(
+                                            f'Better quality {track_type} track found for: "{media_file}"'
+                                        )
+
+                                    best_track_info = track
+                                    new_default_track_num = track_num
+
+                                    LOGGER.debug(
+                                        f"New Best - File: {media_file}, Type: {track_type}, "
+                                        f"Track ID: {track_num}, Codec: {track.get('codec_id')}, "
+                                        f"Channels: {track.get('audio_channels')}, "
+                                        f"Freq: {track.get('audio_samp_freq')}Hz"
+                                    )
+                                elif is_default:
+                                    mkv_cmds.extend(
+                                        [
+                                            "--edit",
+                                            f"track:{track_type[0]}{track_num}",
+                                            "--set",
+                                            "flag-default=0",
+                                        ]
+                                    )
+                            else:  # subtitles
+                                new_default_track_num = track_num
+                                LOGGER.debug(
+                                    f"New Default - File: {media_file}, Type: {track_type}, Track: {track}"
+                                )
+
                         elif current_default_track_num == code == "off":
                             new_default_track_num = code
 
@@ -332,17 +467,20 @@ class MKVAudioSubsDefaulter(object):
                                     LOGGER.error(
                                         f'"{track_type.capitalize()}" language ("{code}") track does not exist in media file: "{media_file}"'
                                     )
+
                                     miss_track_count += 1
                                     no_changes = True
                                 else:
                                     LOGGER.info(
                                         f'"{track_type.capitalize()}" language ("{code}") track exists in media file: "{media_file}"'
                                     )
+
                                     current_default_track_num -= (
                                         len(tracks_info.get("audio", {}))
                                         if track_type == "subtitles"
                                         else 0
                                     )
+
                                     mkv_cmds += [
                                         "--edit",
                                         f"track:{track_type[0]}{current_default_track_num}",
@@ -376,6 +514,7 @@ class MKVAudioSubsDefaulter(object):
                                 if track_type == "subtitles"
                                 else 0
                             )
+
                             mkv_cmds += [
                                 "--edit",
                                 f"track:{track_type[0]}{new_default_track_num}",
@@ -496,9 +635,13 @@ def _runtime_output_str(total_seconds: float) -> None:
     runtime_str = ""
 
     days = int(total_seconds // 86400)
-    hours = int(total_seconds // 3600)
-    minutes = int((total_seconds // 60) % 60)
-    seconds = round(total_seconds - minutes * 60, 2)
+    remaining_seconds = total_seconds % 86400
+
+    hours = int(remaining_seconds // 3600)
+    remaining_seconds = remaining_seconds % 3600
+
+    minutes = int(remaining_seconds // 60)
+    seconds = round(remaining_seconds % 60, 2)
 
     if days > 0:
         runtime_str += f"{days} day(s) "
@@ -507,9 +650,9 @@ def _runtime_output_str(total_seconds: float) -> None:
     if minutes > 0 or hours > 0 or days > 0:
         runtime_str += f"{minutes} min(s) "
     if seconds > 0 or minutes > 0 or hours > 0 or days > 0:
-        runtime_str += f"{seconds} sec(s) "
+        runtime_str += f"{seconds} sec(s)"
 
-    print(f"\n[*] Total Runtime: {runtime_str}[*]")
+    print(f"\n[*] Total Runtime: {runtime_str} [*]")
 
 
 def cmd_parse_args() -> argparse.Namespace:
@@ -556,7 +699,12 @@ def cmd_parse_args() -> argparse.Namespace:
         "-a",
         "--audio",
         type=str,
-        help="Desired audio language (refer to language codes (CANNOT be 'OFF'): -lc, --language-codes)",
+        help=(
+            "Desired audio language (refer to language codes (CANNOT be 'OFF'): -lc, --language-codes)\n\n"
+            "If multiple audio tracks with the same language code exist in the media file (e.g. two eng tracks),\n"
+            "the track with the highest quality will be selected.\n\n"
+            "Track quality is determined by: codec, channels, and audio_smapling_frequency."
+        ),
     )
 
     parser.add_argument(
@@ -649,6 +797,10 @@ def cmd_parse_args() -> argparse.Namespace:
     )
 
     args = parser.parse_args()
+
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        raise parser.error("No arguments were provided, refer to -h/--help for more info")
 
     # Check for exclusive use of -lc/--language-codes
     if args.language_codes and len(sys.argv) >= 3:
