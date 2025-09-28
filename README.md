@@ -325,10 +325,9 @@ made to the cli in a clear and concise manner.
     ```
     OR
     ```bash
-    pip install -r requirements.txt
-    pip install -r requirements_dev.txt
-    pip install -e .
-    pre-commit install --hook-type pre-commit --hook-type pre-push
+    poetry install
+    poetry install --only dev
+    pre-commit install --hook-type pre-commit --hook-type pre-push --install-hooks -t post-checkout -t post-merge
     ```
 
     * Lint (Run analysis - pre-commit-config)
