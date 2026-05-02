@@ -4,15 +4,15 @@ import os
 import re
 import shutil
 import tempfile
-from unittest.mock import Mock
-from unittest.mock import mock_open
-from unittest.mock import patch
+from unittest.mock import Mock, mock_open, patch
 
 import pytest
 
 from MKVAudioSubsDefaulter import MKVAudioSubsDefaulter as mkv_module
-from MKVAudioSubsDefaulter.MKVAudioSubsDefaulter import cmd_parse_args
-from MKVAudioSubsDefaulter.MKVAudioSubsDefaulter import MKVAudioSubsDefaulter
+from MKVAudioSubsDefaulter.MKVAudioSubsDefaulter import (
+    MKVAudioSubsDefaulter,
+    cmd_parse_args,
+)
 
 
 class TestMKVAudioSubsDefaulter:

@@ -6,8 +6,7 @@ import re
 import sys
 from multiprocessing import Pool
 from pathlib import Path
-from subprocess import PIPE
-from subprocess import Popen
+from subprocess import PIPE, Popen
 from subprocess import run as subproc_run
 from time import perf_counter
 
@@ -20,7 +19,7 @@ except ImportError:
         '\nPlease verify its installation, "pip install tqdm", and try again.'
     )
 
-__version__ = "1.4.0"
+__version__ = "1.4.1"
 LOGGER = logging.getLogger(__name__)
 
 
@@ -724,7 +723,7 @@ def cmd_parse_args() -> argparse.Namespace:
             '* "Strict" (default): The specified NEW media file language tracks for BOTH the audio\n  '
             "and subtitle tracks must exist in the track list (if ONE is missing, then no changes made to file)\n"
             "  * EX: If the audio language track is missing but not the subtitle track, then no changes\n    "
-            "are made to the file (even thought the subtitle track exists)\n"
+            "are made to the file (even though the subtitle track exists)\n"
             '* "Lazy": The specified NEW media file language tracks for EITHER audio and/or subtitle\n  '
             "tracks must exist in the track list (if BOTH are missing, then no changes made to file)\n"
             "  * EX: If the audio track language is missing but not the subtitle track, then the audio\n    "
