@@ -5,7 +5,7 @@
 <p align="center">
     <a href="https://github.com/Robert-Zacchigna/MKVAudioSubsDefaulter/releases"><img class="shield" src="https://img.shields.io/github/v/release/Robert-Zacchigna/MKVAudioSubsDefaulter" alt="GitHub Release"></a>
     <a href="https://github.com/Robert-Zacchigna/MKVAudioSubsDefaulter/blob/main/LICENSE"><img class="shield" src="https://img.shields.io/github/license/Robert-Zacchigna/MKVAudioSubsDefaulter%20" alt="GitHub License"></a>
-    <a href="https://www.python.org/downloads/"><img class="shield" src="https://img.shields.io/badge/python->=3.10-blue" alt="GitHub Pipenv locked Python version"></a>
+    <a href="https://www.python.org/downloads/"><img class="shield" src="https://img.shields.io/badge/python->=3.12-blue" alt="GitHub Pipenv locked Python version"></a>
     <a href="https://github.com/Robert-Zacchigna/MKVAudioSubsDefaulter/commits/main"><img class="shield" src="https://img.shields.io/github/commits-since/Robert-Zacchigna/MKVAudioSubsDefaulter/latest" alt="GitHub commits since latest release"></a>
     <a href="https://github.com/Robert-Zacchigna/MKVAudioSubsDefaulter/issues"><img class="shield" src="https://img.shields.io/github/issues/Robert-Zacchigna/MKVAudioSubsDefaulter" alt="GitHub Issues or Pull Requests"></a>
     <a href="https://github.com/Robert-Zacchigna/MKVAudioSubsDefaulter/releases"><img class="shield" src="https://img.shields.io/github/downloads/Robert-Zacchigna/MKVAudioSubsDefaulter/total" alt="GitHub Downloads (all assets, all releases)"></a>
@@ -52,7 +52,7 @@ tracks) _without_ having to remux the whole file (which this cli aims to make as
 
 ## Dependencies
 
-* Python **3.10+** ([python.org](https://www.python.org/downloads/))
+* Python **3.12+** ([python.org](https://www.python.org/downloads/))
   * Install project dependencies with: `make init`
   * <ins>External Python Modules</ins>
     * [tqdm](https://github.com/tqdm/tqdm) (for the progress bar)
@@ -317,17 +317,13 @@ made to the cli in a clear and concise manner.
 
 ### Development Setup
 
-1. Fork **MKVAudioSubsDefaulter**
-2. Setup development environment
+1. Install [UV](https://github.com/astral-sh/uv#installation) if you don't have it already: `pip install uv`
+   1. **UV** is used for managing python packages, makes it much easier to handle and install dependencies
+2. Fork **MKVAudioSubsDefaulter**
+3. Setup local development environment
 
     ```bash
     make devel
-    ```
-    OR
-    ```bash
-    poetry install
-    poetry install --only dev
-    pre-commit install --hook-type pre-commit --hook-type pre-push --install-hooks -t post-checkout -t post-merge
     ```
 
     * Lint (Run analysis - pre-commit-config)
@@ -336,18 +332,18 @@ made to the cli in a clear and concise manner.
       make analysis
       ```
 
-3. Push Changes
+4. Push Changes
    * Push changes to a branch on your forked repo
 
 
-4. Create pull request
+5. Create pull request
    * Open a pull request on **MKVAudioSubsDefaulter** and put your fork as the source of your changes
 
 
-5. Wait for review approval
+6. Wait for review approval
    * Once you have created your PR, I will do my best to review it as soon as possible
 > [!NOTE]
 > I am only one person, so please have patience if I don't get to the PR right away. Thank you.
 
 
-6. Thank you for your contribution to **MKVAudioSubsDefaulter**!
+7. Thank you for your contribution to **MKVAudioSubsDefaulter**!
